@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Redsurte</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+<style>
+:root{
+  --bk:#0a0a0a;--wh:#fff;--red:#E8220A;--redd:#B81A07;--redl:#FFF1EF;
+  --g50:#fafaf9;--g100:#f5f5f4;--g200:#e7e5e4;--g400:#a8a29e;--g600:#57534e;--g800:#292524;
+  --gr:#16a34a;--grl:#dcfce7;--am:#d97706;--aml:#fef3c7;--bl:#2563EB;--bll:#EFF6FF;
+  --fn:'DM Sans',sans-serif;--mo:'DM Mono',monospace;--r:14px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fn);background:var(--g100);color:var(--bk);min-height:100vh}
+button{cursor:pointer;font-family:var(--fn)}
+a{color:inherit;text-decoration:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;background:var(--bk);padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;height:52px}
+.nlogo{display:flex;align-items:center;gap:8px}
+.nlogo-box{width:30px;height:30px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nlogo-txt{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.04em}
+.nlogo-txt span{color:var(--red)}
+.nav-r{display:flex;align-items:center;gap:10px}
+.mbadge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:none;border:none}
+.mb-t{background:var(--red);color:#fff}.mb-r{background:var(--gr);color:#fff}
+.nav-u{font-size:12px;color:var(--g400);cursor:pointer;display:none}
+.nav-menu-btn{background:none;border:none;color:#fff;font-size:20px;padding:4px;display:flex;align-items:center}
+
+/* MENU LATERAL */
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;opacity:0;pointer-events:none;transition:opacity .25s}
+.side-overlay.open{opacity:1;pointer-events:all}
+.side-menu{position:fixed;top:0;right:0;bottom:0;width:280px;background:#fff;z-index:700;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.32,0,.67,0);overflow-y:auto}
+.side-menu.open{transform:translateX(0)}
+.side-hdr{background:var(--bk);padding:20px 16px;display:flex;align-items:center;justify-content:space-between}
+.side-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer}
+.side-logo{display:flex;align-items:center;gap:8px}
+.side-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .12s}
+.side-item:hover{background:var(--g50)}
+.side-item-ic{font-size:22px;flex-shrink:0;width:32px;text-align:center}
+.side-item-info{flex:1}
+.side-item-title{font-size:14px;font-weight:600}
+.side-item-sub{font-size:11px;color:var(--g400);margin-top:1px}
+.side-section{padding:10px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--g400)}
+
+/* LAYOUT */
+.app{padding-top:52px;max-width:430px;margin:0 auto}
+.screen{display:none}.screen.active{display:block}.pbn{padding-bottom:74px}
+
+/* TOAST */
+.toast{position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:var(--bk);color:#fff;padding:11px 22px;border-radius:28px;font-size:13px;
+  font-weight:600;z-index:900;transition:transform .3s cubic-bezier(.34,1.2,.64,1);
+  white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.35);pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+  background:#fff;border-top:1px solid var(--g200);display:none;padding:5px 2px 16px;z-index:150}
+.bnav.vis{display:flex;justify-content:space-around}
+.bni{display:none;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;
+  border-radius:var(--rs);border:none;background:none;color:var(--g400);position:relative}
+.bni.show{display:flex}.bni.on{color:var(--bk)}
+.bni-ic{font-size:20px}.bni-lb{font-size:10px;font-weight:600}
+.bni-dot{position:absolute;top:3px;right:6px;width:9px;height:9px;border-radius:50%;
+  background:var(--red);display:none}.bni-dot.on{display:block}
+
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;
+  display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal.open{opacity:1;pointer-events:all}
+.mbox{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:430px;
+  padding:20px 20px 44px;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0);
+  max-height:92vh;overflow-y:auto}
+.modal.open .mbox{transform:translateY(0)}
+.mhandle{width:40px;height:4px;background:var(--g200);border-radius:4px;margin:0 auto 18px}
+
+@keyframes pop{from{transform:scale(.3) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes ring{0%,100%{box-shadow:0 0 0 4px rgba(232,34,10,.12)}50%{box-shadow:0 0 0 14px rgba(232,34,10,.02)}}
+
+/* BOTONES */
+.btn{width:100%;padding:15px;border-radius:var(--r);border:none;font-size:15px;font-weight:700;font-family:var(--fn);transition:all .15s;display:block;text-align:center}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:var(--redd)}
+.btn-red:disabled{background:var(--g400);cursor:wait}
+.btn-dark{background:var(--bk);color:#fff}
+.btn-out{background:#fff;color:var(--red);border:1.5px solid var(--red)}
+.btn-gr{background:var(--gr);color:#fff}
+.btn-sm{padding:10px 16px;font-size:13px;border-radius:var(--rs);width:auto;display:inline-block}
+
+/* FORM */
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:700;color:var(--g600);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1.5px solid var(--g200);
+  border-radius:var(--rs);font-size:15px;font-family:var(--fn);color:var(--bk);background:#fff;
+  outline:none;transition:border-color .15s;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red)}
+.field textarea{resize:none;height:80px;font-size:14px}
+.shdr{background:#fff;padding:16px 20px 12px;border-bottom:1px solid var(--g200);
+  position:sticky;top:52px;z-index:100}
+.shdr h2{font-size:19px;font-weight:700;letter-spacing:-.03em}
+.shdr p{font-size:12px;color:var(--g600);margin-top:2px}
+.sec{padding:14px 16px}
+.sec-t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g400);margin-bottom:10px}
+.card{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);overflow:hidden;margin-bottom:10px}
+.card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--g100)}
+.card-row:last-child{border-bottom:none}
+.cr-l{font-size:14px;font-weight:500}.cr-v{font-size:13px;color:var(--g400);text-align:right;max-width:60%}
+
+/* SPLASH */
+.splash{background:var(--bk);min-height:calc(100vh - 52px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px 28px;text-align:center}
+.splash-logo{width:80px;height:80px;background:var(--red);border-radius:22px;display:flex;
+  align-items:center;justify-content:center;margin-bottom:28px;animation:pop .6s cubic-bezier(.34,1.56,.64,1) both}
+.splash h1{font-size:40px;font-weight:700;color:#fff;letter-spacing:-.05em;line-height:1.05;
+  margin-bottom:12px;animation:up .5s .15s both}
+.splash h1 em{color:var(--red);font-style:normal;display:block}
+.splash-p{font-size:14px;color:var(--g400);line-height:1.65;max-width:280px;margin:0 auto 36px;animation:up .5s .25s both}
+.splash-btns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:310px;animation:up .5s .35s both}
+.splash-stats{display:flex;gap:32px;margin-top:36px;animation:up .5s .45s both}
+.stn{font-size:20px;font-weight:700;color:#fff;font-family:var(--mo);text-align:center}
+.stl{font-size:11px;color:var(--g400);margin-top:2px;text-align:center}
+
+/* AUTH */
+.awrap{padding:24px 20px 60px}
+.aback{font-size:14px;color:var(--g400);cursor:pointer;margin-bottom:20px;display:inline-flex;align-items:center;gap:5px}
+.alogo{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.alogo-box{width:36px;height:36px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.atitle{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+.asub{font-size:13px;color:var(--g600);margin-bottom:18px}
+.alink{text-align:center;margin-top:16px;font-size:13px;color:var(--g400)}
+.alink span{color:var(--red);font-weight:600;cursor:pointer}
+
+/* FOTO PERFIL */
+.foto-upload{width:80px;height:80px;border-radius:50%;background:var(--g100);border:2px dashed var(--g200);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto 14px;
+  overflow:hidden;position:relative;flex-shrink:0}
+.foto-upload img{width:100%;height:100%;object-fit:cover}
+.foto-upload-lbl{font-size:10px;color:var(--g400);text-align:center;margin-top:-4px}
+#foto-input{display:none}
+
+/* CATÁLOGO */
+.sbar{padding:12px 16px 0}
+.sbox{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--g200);
+  border-radius:var(--rs);padding:10px 14px}
+.sbox input{border:none;outline:none;font-size:14px;flex:1;font-family:var(--fn);background:transparent}
+.cats{padding:10px 16px 0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;
+  cursor:pointer;border:1.5px solid var(--g200);background:#fff;color:var(--g600);transition:all .12s;flex-shrink:0}
+.cat.on{background:var(--bk);color:#fff;border-color:var(--bk)}
+.prods{padding:10px 16px;display:flex;flex-direction:column;gap:8px}
+.prod{background:#fff;border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;
+  gap:12px;border:1.5px solid var(--g200);transition:border-color .12s}
+.prod.inc{border-color:var(--red)}
+.pem{font-size:26px;flex-shrink:0}
+.pin{flex:1;min-width:0}
+.pnm{font-size:14px;font-weight:600}
+.pds{font-size:11px;color:var(--g400);margin-top:1px}
+.ppr{font-size:13px;font-weight:700;color:var(--red);margin-top:3px;font-family:var(--mo)}
+.ppeso{font-size:10px;color:var(--g400);margin-top:2px}
+.pqc{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.qb{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--g200);background:#fff;
+  font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--bk)}
+.qb.add{background:var(--bk);color:#fff;border-color:var(--bk)}
+.qb.red{background:var(--red);border-color:var(--red);color:#fff}
+.qn{font-size:14px;font-weight:700;font-family:var(--mo);min-width:16px;text-align:center}
+.cfloat{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);background:var(--bk);
+  color:#fff;padding:13px 20px;border-radius:28px;display:flex;align-items:center;gap:14px;
+  cursor:pointer;min-width:300px;max-width:370px;box-shadow:0 8px 32px rgba(0,0,0,.3);
+  transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:50}
+.cfloat.hidden{transform:translateX(-50%) translateY(90px);opacity:0;pointer-events:none}
+.ccnt{background:var(--red);color:#fff;width:28px;height:28px;border-radius:50%;font-size:12px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--mo)}
+.clbl{font-size:14px;font-weight:600;flex:1}
+.ctv{font-size:14px;font-weight:700;font-family:var(--mo)}
+
+/* CARRITO MODAL */
+.ci{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)}
+.ci:last-child{border-bottom:none}
+.cin{font-size:13px;font-weight:600}.ciq{font-size:12px;color:var(--g400);margin-top:1px}
+.cip{font-size:13px;font-weight:700;font-family:var(--mo);flex-shrink:0}
+.csum{background:var(--g50);border-radius:var(--rs);padding:12px 14px;margin:12px 0}
+.crow{display:flex;justify-content:space-between;font-size:13px;color:var(--g600);margin-bottom:6px}
+.crow:last-child{margin-bottom:0;font-size:15px;font-weight:700;color:var(--bk)}
+.crow:last-child span:last-child{font-family:var(--mo);color:var(--red)}
+.pay-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pay-opt{padding:12px;border:1.5px solid var(--g200);border-radius:var(--rs);text-align:center;cursor:pointer;background:#fff;transition:all .12s}
+.pay-opt.on{border-color:var(--red);background:var(--redl)}
+.pay-opt-ic{font-size:22px;margin-bottom:4px}
+.pay-opt-nm{font-size:12px;font-weight:600}
+/* Transporte recomendado */
+.transport-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;
+  border-radius:var(--rs);font-size:13px;font-weight:600;margin-bottom:14px;width:100%}
+.tb-moto{background:var(--aml);color:var(--am)}
+.tb-auto{background:var(--bll);color:var(--bl)}
+.tb-camion{background:var(--redl);color:var(--red)}
+/* Mapa ubicación pedido */
+#map-pedido{width:100%;height:160px;border-radius:var(--rs);border:1.5px solid var(--g200);margin-bottom:14px}
+
+/* CÓDIGO DE CONFIRMACIÓN */
+.codigo-box{background:var(--bk);border-radius:var(--r);padding:20px;text-align:center;margin-bottom:14px}
+.codigo-lbl{font-size:12px;color:var(--g400);margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase}
+.codigo-val{font-size:44px;font-weight:700;color:#fff;font-family:var(--mo);letter-spacing:.1em}
+.codigo-sub{font-size:12px;color:var(--g400);margin-top:8px;line-height:1.5}
+
+/* TRACKING */
+.twrap{padding:20px 16px 50px}
+.repcard{background:var(--grl);border-radius:var(--r);padding:14px;display:none;
+  align-items:center;gap:12px;margin-bottom:14px}
+.repcard.on{display:flex}
+.rcav{width:42px;height:42px;border-radius:50%;background:var(--gr);display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden}
+.rcav img{width:100%;height:100%;object-fit:cover}
+.rcname{font-size:14px;font-weight:700}.rcsub{font-size:12px;color:var(--gr);margin-top:1px}
+.rceta{font-size:18px;font-weight:800;font-family:var(--mo);color:var(--gr)}
+.tcard{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:16px;margin-bottom:14px}
+.tcard-t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g400);margin-bottom:14px}
+.tstep{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.tstep:last-child{margin-bottom:0}
+.tdot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700}
+.tdot.done{background:var(--bk);color:#fff}
+.tdot.act{background:var(--red);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+.tdot.wait{background:var(--g200);color:var(--g400)}
+.tlbl{font-size:13px;font-weight:600;padding-top:5px}
+.tlbl.w{color:var(--g400)}
+/* Código entrega */
+.entrega-codigo{background:var(--g50);border-radius:var(--rs);padding:12px 14px;margin-top:8px;text-align:center}
+.ec-lbl{font-size:11px;color:var(--g400);margin-bottom:4px}
+.ec-val{font-size:28px;font-weight:700;font-family:var(--mo);color:var(--bk);letter-spacing:.1em}
+
+/* REPARTIDOR */
+.rhdr{background:var(--bk);padding:18px 20px 16px}
+.rhdrt{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.rhav{width:44px;height:44px;border-radius:50%;background:var(--red);display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;cursor:pointer}
+.rhav img{width:100%;height:100%;object-fit:cover}
+.rhname{font-size:16px;font-weight:700;color:#fff}
+.rhsub{font-size:12px;color:var(--g400);margin-top:2px}
+.olbtn{padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;border:none;letter-spacing:.03em;transition:all .2s}
+.olbtn.on{background:var(--gr);color:#fff}
+.olbtn.off{background:#1c1c1c;color:var(--g400);border:1px solid #333}
+.rstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rstat{background:#161616;border-radius:var(--rs);padding:10px 12px;text-align:center}
+.rsv{font-size:17px;font-weight:700;font-family:var(--mo)}
+.rsl{font-size:10px;color:var(--g400);margin-top:2px}
+.idle{padding:52px 24px;text-align:center}
+.idle-ic{font-size:52px;margin-bottom:16px}
+.idle-t{font-size:19px;font-weight:700;margin-bottom:8px}
+.idle-s{font-size:13px;color:var(--g400);line-height:1.65}
+/* incoming */
+.inw{padding:14px 16px}
+.incrd{background:#fff;border-radius:var(--r);overflow:hidden;border:2px solid var(--red);animation:ring 1.5s ease-in-out infinite}
+.intop{background:var(--red);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.inlbl{font-size:12px;font-weight:800;color:#fff;letter-spacing:.08em}
+.intimer{font-size:24px;font-weight:800;color:#fff;font-family:var(--mo)}
+.inbody{padding:16px}
+.instore{font-size:17px;font-weight:700;margin-bottom:3px}
+.inaddr{font-size:12px;color:var(--g600);margin-bottom:10px}
+.initems{background:var(--g50);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px}
+.initem{font-size:12px;color:var(--g800);padding:2px 0}
+.inearn{background:var(--grl);border-radius:var(--rs);padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ineamt{font-size:24px;font-weight:800;color:var(--gr);font-family:var(--mo)}
+.inelbl{font-size:11px;color:var(--gr);font-weight:600}
+.ineeta{font-size:12px;color:var(--gr);font-weight:600}
+/* transporte badge */
+.tb{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;margin-bottom:10px}
+.inacts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-rech{padding:13px;border:1.5px solid var(--g200);background:#fff;border-radius:var(--rs);font-size:14px;font-weight:600;color:var(--g600)}
+.btn-acep{padding:13px;background:var(--red);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:800}
+/* active order */
+.actwrap{padding:14px 16px}
+.actcrd{background:#fff;border-radius:var(--r);padding:16px;border:1.5px solid var(--g200)}
+.acthdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.actstore{font-size:16px;font-weight:700}.actaddr{font-size:12px;color:var(--g400);margin-top:2px}
+.actearn{font-size:20px;font-weight:800;color:var(--gr);font-family:var(--mo)}
+.step{display:flex;gap:12px}
+.stepleft{display:flex;flex-direction:column;align-items:center}
+.sdot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800}
+.sdot.done{background:var(--bk);color:#fff}
+.sdot.cur{background:var(--red);color:#fff;animation:pulse 1.2s infinite}
+.sdot.pend{background:var(--g200);color:var(--g400)}
+.sline{width:2px;height:28px;background:var(--g200)}
+.sline.done{background:var(--bk)}
+.stepc{padding-bottom:18px;flex:1}
+.stitle{font-size:14px;font-weight:600;padding-top:5px}
+.stitle.done{color:var(--g400);text-decoration:line-through}
+.stitle.w{color:var(--g400)}
+.ssub{font-size:12px;color:var(--g400);margin-top:3px}
+.btn-nx{width:100%;padding:13px;background:var(--bk);color:#fff;border:none;border-radius:var(--rs);
+  font-size:14px;font-weight:700;margin-top:8px}
+.btn-nx.g{background:var(--gr)}
+/* Código confirmar entrega */
+.cod-confirm{background:var(--aml);border-radius:var(--rs);padding:12px 14px;margin-top:10px}
+.cod-confirm-lbl{font-size:12px;color:var(--am);font-weight:600;margin-bottom:6px}
+.cod-confirm-input{width:100%;padding:10px;border:1.5px solid var(--am);border-radius:var(--rs);
+  font-size:22px;font-family:var(--mo);font-weight:700;text-align:center;letter-spacing:.1em;
+  background:#fff;outline:none}
+.btn-validar{width:100%;padding:12px;background:var(--am);color:#fff;border:none;
+  border-radius:var(--rs);font-size:14px;font-weight:700;margin-top:8px}
+
+/* MAPA */
+.mapa-wrap{position:relative;height:calc(100vh - 52px - 74px)}
+#map{width:100%;height:100%;z-index:1}
+.map-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);
+  padding:10px 16px;border-top:1px solid var(--g200);z-index:2;font-size:12px;color:var(--g600)}
+
+/* PERFIL */
+.pfwrap{padding:20px 16px 50px}
+.pf-hdr{background:var(--bk);padding:24px 20px 20px;text-align:center;margin:-20px -16px 20px}
+.pfav{width:72px;height:72px;border-radius:50%;background:var(--red);display:flex;
+  align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px;
+  overflow:hidden;cursor:pointer;position:relative}
+.pfav img{width:100%;height:100%;object-fit:cover}
+.pfname{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.03em}
+.pfrol{font-size:12px;color:var(--g400);margin-top:3px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:14px}
+.kpi-val{font-size:22px;font-weight:700;font-family:var(--mo)}
+.kpi-val.r{color:var(--red)}.kpi-val.g{color:var(--gr)}.kpi-val.b{color:var(--bl)}
+.kpi-lbl{font-size:11px;color:var(--g400);margin-top:3px}
+.aten{background:var(--bk);border-radius:var(--r);padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.aten-info{flex:1}
+.aten-title{font-size:14px;font-weight:700;color:#fff}
+.aten-num{font-size:16px;font-weight:700;color:var(--red);font-family:var(--mo);margin-top:2px}
+.aten-sub{font-size:11px;color:var(--g400);margin-top:2px}
+.btn-wa{padding:10px 14px;background:#25D366;color:#fff;border:none;border-radius:var(--rs);
+  font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.wday-lbl{font-size:9px;color:var(--g400);text-align:center;margin-bottom:4px}
+.wday-bar{height:44px;background:var(--g200);border-radius:4px;position:relative;overflow:hidden}
+.wday-fill{position:absolute;bottom:0;left:0;right:0;border-radius:4px}
+.wday-val{font-size:9px;color:var(--g600);text-align:center;margin-top:3px;font-family:var(--mo)}
+
+/* PEDIDOS */
+.ped-card{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:14px;margin-bottom:8px;cursor:pointer}
+.ped-card.live{border-color:var(--red)}
+.ps{display:inline-flex;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:6px}
+.ps-b{background:var(--aml);color:var(--am)}.ps-a{background:var(--bll);color:var(--bl)}
+.ps-c{background:var(--aml);color:var(--am)}.ps-e{background:var(--grl);color:var(--gr)}
+
+/* PROVEEDOR */
+.prov-hdr{background:linear-gradient(135deg,var(--bk) 0%,#1a1a2e 100%);padding:28px 20px;text-align:center}
+.prov-ic{font-size:48px;margin-bottom:12px}
+.prov-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
+.prov-sub{font-size:13px;color:var(--g400);line-height:1.6;max-width:280px;margin:0 auto}
+.prov-beneficios{padding:16px;display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
+.pb{display:flex;align-items:flex-start;gap:12px;background:#fff;border-radius:var(--r);
+  padding:14px;border:1.5px solid var(--g200)}
+.pb-ic{font-size:24px;flex-shrink:0}
+.pb-title{font-size:14px;font-weight:700;margin-bottom:2px}
+.pb-sub{font-size:12px;color:var(--g600)}
+
+/* CHAT */
+.chat-msgs{height:calc(100vh - 52px - 74px - 120px);overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:78%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5}
+.msg.out{background:var(--red);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.in{background:#fff;color:var(--bk);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--g200)}
+.msg-time{font-size:10px;opacity:.7;margin-top:3px;text-align:right}
+.chat-inp-wrap{background:#fff;padding:10px 16px;border-top:1px solid var(--g200);display:flex;align-items:center;gap:10px}
+.chat-inp{flex:1;padding:10px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:14px;font-family:var(--fn);outline:none}
+.chat-send{width:40px;height:40px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center}
+
+#reg-map{width:100%;height:180px;border-radius:var(--rs);border:1.5px solid var(--g200);margin-top:6px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+var AUTH, DB;
+try {
+  firebase.initializeApp({
+    apiKey:            "AIzaSyDnzE0lsyYa8Dm5_bh0PrF-u7olJkJQ4xc",
+    authDomain:        "redsurte.firebaseapp.com",
+    databaseURL:       "https://redsurte-default-rtdb.firebaseio.com",
+    projectId:         "redsurte",
+    storageBucket:     "redsurte.firebasestorage.app",
+    messagingSenderId: "36193168497",
+    appId:             "1:36193168497:web:81f2366fefcd7b5012ffd0"
+  });
+  AUTH = firebase.auth();
+  DB   = firebase.database();
+  console.log("Firebase listo");
+} catch(e) { console.error("Firebase error:", e); }
+var BODEGA = { lat: 20.805447, lng: -102.747375, nombre: 'Bodega Redsurte - Casa' };
+</script>
+</head>
+<body>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div id="toast" class="toast"></div>
+
+<!-- MENÚ LATERAL -->
+<div class="side-overlay" id="side-overlay" onclick="cerrarMenu()"></div>
+<div class="side-menu" id="side-menu">
+  <div class="side-hdr">
+    <div class="side-logo">
+      <div class="nlogo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="17" height="17"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div>
+      <div class="nlogo-txt">Red<span>surte</span></div>
+    </div>
+    <button class="side-close" onclick="cerrarMenu()">✕</button>
+  </div>
+  <div class="side-section">Para tiendas y repartidores</div>
+  <div class="side-item" onclick="cerrarMenu();go('tienda')">
+    <div class="side-item-ic">🏪</div>
+    <div class="side-item-info"><div class="side-item-title">Catálogo de productos</div><div class="side-item-sub">Haz tu pedido ahora</div></div>
+  </div>
+  <div class="side-item" onclick="cerrarMenu();go('mapa')">
+    <div class="side-item-ic">🗺</div>
+    <div class="side-item-info"><div class="side-item-title">Mapa en vivo</div><div class="side-item-sub">Repartidores y tiendas activos</div></div>
+  </div>
+  <div class="side-item" onclick="cerrarMenu();go('perfil')">
+    <div class="side-item-ic">👤</div>
+    <div class="side-item-info"><div class="side-item-title">Mi perfil</div><div class="side-item-sub">Cuenta, estadísticas y configuración</div></div>
+  </div>
+  <div class="side-section">Para empresas y fabricantes</div>
+  <div class="side-item" onclick="cerrarMenu();go('proveedor')" style="border-left:3px solid var(--red)">
+    <div class="side-item-ic">🏭</div>
+    <div class="side-item-info"><div class="side-item-title" style="color:var(--red)">Registra tu empresa como proveedor</div><div class="side-item-sub">Vende a miles de tiendas en la región</div></div>
+  </div>
+  <div class="side-section">Soporte</div>
+  <div class="side-item" onclick="window.open('https://wa.me/523781429763','_blank')">
+    <div class="side-item-ic">💬</div>
+    <div class="side-item-info"><div class="side-item-title">WhatsApp Redsurte</div><div class="side-item-sub">378 142 9763 · Lun-Sáb 8am-8pm</div></div>
+  </div>
+  <div class="side-item" onclick="cerrarMenu();doLogout()" id="side-logout" style="display:none">
+    <div class="side-item-ic">🚪</div>
+    <div class="side-item-info"><div class="side-item-title">Cerrar sesión</div></div>
+  </div>
+</div>
+
+<nav>
+  <div class="nlogo">
+    <div class="nlogo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="17" height="17"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div>
+    <div class="nlogo-txt">Red<span>surte</span></div>
+  </div>
+  <div class="nav-r">
+    <div class="mbadge mb-t" id="mbadge"></div>
+    <div class="nav-u" id="nav-u" onclick="go('perfil')"></div>
+    <button class="nav-menu-btn" onclick="abrirMenu()">☰</button>
+  </div>
+</nav>
+
+<!-- CART MODAL -->
+<div class="modal" id="modal-cart" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="mbox">
+    <div class="mhandle"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:14px">Tu pedido 🛒</div>
+    <div id="citems"></div>
+    <div class="csum" style="margin-top:10px">
+      <div class="crow"><span>Subtotal</span><span id="csub">$0</span></div>
+      <div class="crow"><span>Peso aprox.</span><span id="cpeso">0 kg</span></div>
+      <div class="crow"><span>Envío</span><span style="color:var(--gr)">¡Gratis! 🎉</span></div>
+      <div class="crow"><span>Total</span><span id="ctot">$0</span></div>
+    </div>
+    <div class="transport-badge tb-moto" id="transport-badge">🏍 Transporte recomendado: Moto</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:8px">📍 Ubicación de entrega</div>
+    <div id="map-pedido"></div>
+    <div style="font-size:12px;color:var(--g400);margin-bottom:12px;text-align:center">Mueve el pin para ajustar tu ubicación exacta</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:8px">Método de pago</div>
+    <div class="pay-opts">
+      <div class="pay-opt on" onclick="selPay('efectivo',this)"><div class="pay-opt-ic">💵</div><div class="pay-opt-nm">Efectivo</div></div>
+      <div class="pay-opt"    onclick="selPay('transferencia',this)"><div class="pay-opt-ic">📱</div><div class="pay-opt-nm">Transferencia</div></div>
+      <div class="pay-opt"    onclick="selPay('tarjeta',this)"><div class="pay-opt-ic">💳</div><div class="pay-opt-nm">Tarjeta débito</div></div>
+      <div class="pay-opt"    onclick="selPay('credito',this)"><div class="pay-opt-ic">🏦</div><div class="pay-opt-nm">Crédito tienda</div></div>
+    </div>
+    <button class="btn btn-red" id="btn-conf" onclick="confirmar()">📦 Confirmar pedido</button>
+  </div>
+</div>
+
+<!-- CHAT MODAL -->
+<div class="modal" id="modal-chat" onclick="if(event.target===this){this.classList.remove('open');}">
+  <div class="mbox" style="padding:0;height:80vh;display:flex;flex-direction:column">
+    <div style="padding:14px 16px 0"><div class="mhandle"></div></div>
+    <div style="background:#fff;padding:12px 16px;border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:10px">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden" id="chat-av">🏪</div>
+      <div><div style="font-size:14px;font-weight:700" id="chat-nm">Chat</div><div style="font-size:11px;color:var(--g400)">En línea</div></div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div class="chat-inp-wrap">
+      <input class="chat-inp" id="chat-inp" type="text" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')enviarMsg()">
+      <button class="chat-send" onclick="enviarMsg()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- SPLASH -->
+<div class="screen active" id="screen-splash">
+  <div class="splash">
+    <div class="splash-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="44" height="44"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div>
+    <h1>La red que<em>surte México</em></h1>
+    <p class="splash-p">Plataforma que conecta tiendas de abarrotes con repartidores independientes, al instante.</p>
+    <div class="splash-btns">
+      <button class="btn btn-red" onclick="go('registro')">Crear cuenta gratis</button>
+      <button class="btn" style="background:#1c1c1c;color:#fff;border:1px solid #333" onclick="go('login')">Ya tengo cuenta - Entrar</button>
+      <button class="btn" style="background:transparent;color:var(--g400);border:1px solid #333;font-weight:500" onclick="go('proveedor')">🏭 ¿Eres proveedor? Únete</button>
+    </div>
+    
+      <div><div class="stn">8%</div><div class="stl">Comisión</div></div>
+      <div><div class="stn">&lt;2hr</div><div class="stl">Entrega</div></div>
+    </div>
+    <div style="margin-top:20px;font-size:10px;color:#333;font-family:monospace">v4.1 - Jun 2026</div>
+  </div>
+</div>
+
+<!-- REGISTRO -->
+<div class="screen" id="screen-registro">
+  <div class="awrap">
+    <div class="aback" onclick="go('splash')">← Regresar</div>
+    <div class="alogo"><div class="alogo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="20" height="20"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div><div class="nlogo-txt" style="font-size:18px">Red<span>surte</span></div></div>
+    <div class="atitle">Crear cuenta</div>
+    <div class="asub">Únete a la red que surte México 🇲🇽</div>
+    <!-- Foto perfil -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="foto-upload" id="foto-preview" onclick="g('foto-input').click()">
+        <span style="font-size:28px">📷</span>
+      </div>
+      <div class="foto-upload-lbl">Foto de perfil (opcional)</div>
+      <input type="file" id="foto-input" accept="image/*" onchange="previewFoto(this)">
+    </div>
+    <div class="field">
+      <label>¿Quién eres?</label>
+      <select id="reg-rol" onchange="toggleRolFields()">
+        <option value="tienda">🏪 Dueño de negocio</option>
+        <option value="repartidor">🛵 Repartidor independiente</option>
+      </select>
+    </div>
+    <div class="field"><label>Nombre completo</label><input id="reg-nom" type="text" placeholder="Ej. Juan García" autocomplete="name"></div>
+    <div class="field" id="field-tienda"><label>Nombre de tu tienda</label><input id="reg-tienda" type="text" placeholder="Ej. Tienda La Esperanza"></div>
+    <!-- Campos repartidor -->
+    <div id="fields-rep" style="display:none">
+      <div class="field">
+        <label>Tipo de vehículo</label>
+        <select id="reg-vehiculo">
+          <option value="moto">🏍 Motocicleta (hasta 50kg)</option>
+          <option value="auto">🚗 Automóvil (hasta 200kg)</option>
+          <option value="camioneta">🚚 Camioneta/Pick-up (hasta 500kg)</option>
+          <option value="camion">🚛 Camión (más de 500kg)</option>
+        </select>
+      </div>
+      <div class="field"><label>Marca y modelo del vehículo</label><input id="reg-vehiculo-modelo" type="text" placeholder="Ej. Honda CB125, Nissan Tsuru" oninput="detectarVehiculo(this.value)"></div>
+      <div class="field"><label>Placa del vehículo</label><input id="reg-placa" type="text" placeholder="Ej. ABC-123" style="text-transform:uppercase"></div>
+    </div>
+    <div class="field"><label>Correo electrónico</label><input id="reg-em" type="email" placeholder="tucorreo@gmail.com" autocomplete="email"></div>
+    <div class="field"><label>Contraseña (mínimo 6 caracteres)</label><input id="reg-pw" type="password" placeholder="••••••" autocomplete="new-password"></div>
+    <div class="field">
+      <label>📍 Tu ubicación en el mapa</label>
+      <div id="reg-map"></div>
+      <p style="font-size:12px;color:var(--g400);margin-top:6px;text-align:center">Toca el mapa para marcar tu ubicación exacta</p>
+    </div>
+    <button class="btn btn-red" id="btn-reg" onclick="doRegistro()" style="margin-top:8px">Crear cuenta →</button>
+    <div class="alink" style="margin-top:14px">¿Ya tienes cuenta? <span onclick="go('login')">Inicia sesión</span></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="screen-login">
+  <div class="awrap">
+    <div class="aback" onclick="go('splash')">← Regresar</div>
+    <div class="alogo"><div class="alogo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" width="20" height="20"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div><div class="nlogo-txt" style="font-size:18px">Red<span>surte</span></div></div>
+    <div class="atitle">Bienvenido de vuelta</div>
+    <div class="asub">Ingresa con tu cuenta Redsurte</div>
+    <div class="field"><label>Correo electrónico</label><input id="log-em" type="email" placeholder="tucorreo@gmail.com" autocomplete="email"></div>
+    <div class="field"><label>Contraseña</label><input id="log-pw" type="password" placeholder="••••••" autocomplete="current-password"></div>
+    <button class="btn btn-red" id="btn-log" onclick="doLogin()">Entrar →</button>
+    <div class="alink" style="margin-top:14px">¿No tienes cuenta? <span onclick="go('registro')">Regístrate gratis</span></div>
+  </div>
+</div>
+
+<!-- TIENDA CATÁLOGO -->
+<div class="screen pbn" id="screen-tienda">
+  <div class="shdr"><h2 id="t-hdr">Mi Tienda 🏪</h2><p>Tepatitlán de Morelos · Entrega ~2 hrs</p></div>
+  <div class="sbar"><div class="sbox"><span style="color:var(--g400)">🔍</span><input type="text" id="search" placeholder="Buscar producto..." oninput="renderProds()"></div></div>
+  <div class="cats">
+    <div class="cat on" onclick="selCat(this,'todos')">Todos</div>
+    <div class="cat" onclick="selCat(this,'bebidas')">🥤 Bebidas</div>
+    <div class="cat" onclick="selCat(this,'botanas')">🍿 Botanas</div>
+    <div class="cat" onclick="selCat(this,'lacteos')">🥛 Lácteos</div>
+    <div class="cat" onclick="selCat(this,'limpieza')">🧴 Limpieza</div>
+    <div class="cat" onclick="selCat(this,'granos')">🌽 Granos</div>
+  </div>
+  <div class="prods" id="prods"></div>
+  <div class="cfloat hidden" id="cfloat" onclick="abrirCarrito()">
+    <div class="ccnt" id="ccnt">0</div>
+    <div class="clbl">Ver pedido</div>
+    <div class="ctv">$<span id="ctotv">0</span></div>
+  </div>
+</div>
+
+<!-- MIS PEDIDOS -->
+<div class="screen pbn" id="screen-mispedidos">
+  <div class="shdr"><h2>Mis pedidos 📋</h2><p>Seguimiento en vivo</p></div>
+  <div style="padding:14px 16px" id="lista-peds">
+    <div style="text-align:center;padding:48px 24px;color:var(--g400)">
+      <div style="font-size:48px;margin-bottom:12px">📦</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:6px">Sin pedidos aún</div>
+      <div style="font-size:13px">Haz tu primer pedido desde el catálogo</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKING -->
+<div class="screen" id="screen-confirm">
+  <div class="shdr"><h2>Seguimiento 📍</h2><p id="ped-id-lbl">-</p></div>
+  <div class="twrap">
+    <!-- Código de confirmación -->
+    <div class="codigo-box" id="codigo-box" style="display:none">
+      <div class="codigo-lbl">🔐 Código de confirmación</div>
+      <div class="codigo-val" id="codigo-val">-</div>
+      <div class="codigo-sub">Muéstrale este código al repartidor cuando llegue a tu tienda para confirmar la entrega</div>
+    </div>
+    <div class="repcard" id="repcard">
+      <div class="rcav" id="rcav">🛵</div>
+      <div style="flex:1">
+        <div class="rcname" id="rcname">-</div>
+        <div class="rcsub" id="rcsub">Repartidor asignado ✓</div>
+      </div>
+      <div class="rceta" id="rceta">~25min</div>
+    </div>
+    <div class="tcard">
+      <div class="tcard-t">Rastreo en vivo</div>
+      <!-- Codigo de entrega -->
+      <div id="cod-box" style="display:none;background:#0a0a0a;border-radius:10px;padding:14px;margin-bottom:12px;text-align:center">
+        <div style="font-size:11px;color:#a8a29e;font-weight:600;margin-bottom:6px">TU CODIGO DE ENTREGA</div>
+        <div id="cod-val" style="font-size:32px;font-weight:800;color:#fff;letter-spacing:.2em;font-family:monospace">------</div>
+        <div style="font-size:11px;color:#a8a29e;margin-top:4px">Dalo al repartidor cuando llegue</div>
+      </div>
+      <div class="tstep"><div class="tdot done" id="td1">✓</div><div style="padding-top:5px"><div class="tlbl" id="tl1">Pedido enviado</div></div></div>
+      <div class="tstep"><div class="tdot act"  id="td2">⏳</div><div style="padding-top:5px"><div class="tlbl" id="tl2">Buscando repartidor...</div></div></div>
+      <div class="tstep"><div class="tdot wait" id="td3">3</div><div style="padding-top:5px"><div class="tlbl w" id="tl3">Repartidor en bodega</div></div></div>
+      <div class="tstep"><div class="tdot wait" id="td4">4</div><div style="padding-top:5px"><div class="tlbl w" id="tl4">En camino a tu tienda</div></div></div>
+      <div class="tstep"><div class="tdot wait" id="td5">5</div><div style="padding-top:5px"><div class="tlbl w" id="tl5">Entregado 🎉</div></div></div>
+    </div>
+    <button class="btn btn-dark" onclick="go('tienda')" style="margin-bottom:10px">← Seguir comprando</button>
+    <button class="btn" id="btn-cancelar-ped" style="display:none;background:var(--aml);color:var(--am);margin-bottom:10px" onclick="cancelarPedido()">✕ Cancelar pedido (dentro de 30s)</button>
+    <button class="btn btn-out" id="btn-chat-t" style="display:none" onclick="abrirChat('tienda')">💬 Chat con el repartidor</button>
+  </div>
+</div>
+
+<!-- REPARTIDOR -->
+<div class="screen pbn" id="screen-rep">
+  <div class="rhdr">
+    <div class="rhdrt">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="rhav" id="r-av" onclick="go('perfil')">🛵</div>
+        <div><div class="rhname" id="r-hname">Repartidor</div><div class="rhsub" id="r-hsub">Redsurte · Tepatitlán</div></div>
+      </div>
+      <button class="olbtn off" id="olbtn" onclick="toggleOnline()">INACTIVO</button>
+    </div>
+    <div class="rstats">
+      <div class="rstat"><div class="rsv" style="color:#4ade80" id="r-gan">$0</div><div class="rsl">Hoy</div></div>
+      <div class="rstat"><div class="rsv" style="color:#fff"   id="r-ent">0</div><div class="rsl">Entregas</div></div>
+      <div class="rstat"><div class="rsv" style="color:#fbbf24">4.9⭐</div><div class="rsl">Rating</div></div>
+    </div>
+  </div>
+  <div id="rep-idle" class="idle">
+    <div class="idle-ic" id="idle-ic">🛵</div>
+    <div class="idle-t"  id="idle-t">Estás inactivo</div>
+    <div class="idle-s"  id="idle-s">Activa tu disponibilidad para recibir pedidos en Tepatitlán.</div>
+  </div>
+  <div id="rep-in" style="display:none" class="inw">
+    <div class="incrd">
+      <div class="intop"><span class="inlbl">⚡ NUEVO PEDIDO</span><span class="intimer" id="r-timer">30</span></div>
+      <div class="inbody">
+        <div class="instore" id="in-store">Tienda</div>
+        <div class="inaddr"  id="in-addr">📍 Tepatitlán</div>
+        <div class="initems" id="in-items"></div>
+        <div class="inearn">
+          <div><div class="ineamt" id="in-earn">$0</div><div class="inelbl">Tu ganancia</div></div>
+          <div class="ineeta" id="in-transporte">🏍 Moto · ~20 min</div>
+        </div>
+        <div class="inacts">
+          <button class="btn-rech" onclick="rechazar()">Rechazar</button>
+          <button class="btn-acep" onclick="aceptar()">Aceptar ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="rep-act" style="display:none" class="actwrap">
+    <div class="actcrd">
+      <div class="acthdr">
+        <div><div class="actstore" id="act-store">Tienda</div><div class="actaddr" id="act-addr"></div></div>
+        <div class="actearn" id="act-earn">$0</div>
+      </div>
+      <div id="steps"></div>
+      <!-- Campo para validar código -->
+      <div class="cod-confirm" id="cod-confirm-wrap" style="display:none">
+        <div class="cod-confirm-lbl">🔐 Ingresa el código que te da el cliente</div>
+        <input class="cod-confirm-input" id="cod-input" type="text" maxlength="6" placeholder="· · · · · ·" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn-validar" onclick="validarCodigo()">Confirmar entrega ✓</button>
+      </div>
+      <button class="btn btn-out" onclick="abrirChat('rep')" style="margin-top:12px">💬 Chat con la tienda</button>
+      <button class="btn" onclick="reportarNoEntregado()" style="margin-top:8px;background:var(--redl);color:var(--red);border:1.5px solid var(--red)" id="btn-no-entregado">⚠️ Reportar problema de entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAPA -->
+<div class="screen pbn" id="screen-mapa">
+  <div class="mapa-wrap">
+    <div id="map"></div>
+    <div class="map-bar">🔴 Repartidores &nbsp;·&nbsp; 📍 Tú &nbsp;·&nbsp; 🏭 Bodega &nbsp;·&nbsp; 🏪 Tiendas &nbsp;·&nbsp; 🔵 Ruta activa</div>
+  </div>
+</div>
+
+<!-- PERFIL -->
+<div class="screen pbn" id="screen-perfil">
+  <div class="pfwrap">
+    <div class="pf-hdr">
+      <div class="pfav" id="pf-av" onclick="g('foto-perfil-input').click()">👤<input type="file" id="foto-perfil-input" accept="image/*" style="display:none" onchange="cambiarFotoPerfil(this)"></div>
+      <div class="pfname" id="pf-name">-</div>
+      <div class="pfrol"  id="pf-rol">-</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val r" id="kpi1">$0</div><div class="kpi-lbl" id="kpi1l">Total</div></div>
+      <div class="kpi"><div class="kpi-val b" id="kpi2">0</div><div class="kpi-lbl" id="kpi2l">Pedidos</div></div>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--g600)">Rendimiento semanal</div>
+    <div class="card" style="padding:14px;margin-bottom:12px"><div class="week-grid" id="week-grid"></div></div>
+    <div class="aten">
+      <div style="font-size:28px">📞</div>
+      <div class="aten-info"><div class="aten-title">Atención Redsurte</div><div class="aten-num">378 142 9763</div><div class="aten-sub">Lun-Sáb 8am-8pm</div></div>
+      <button class="btn-wa" onclick="window.open('https://wa.me/523781429763','_blank')">💬 WA</button>
+    </div>
+    <div class="card">
+      <div class="card-row"><div class="cr-l">👤 Nombre</div><div class="cr-v" id="pf-nom">-</div></div>
+      <div class="card-row"><div class="cr-l">📧 Correo</div><div class="cr-v" id="pf-em">-</div></div>
+      <div class="card-row"><div class="cr-l">🏷 Rol</div><div class="cr-v" id="pf-rv">-</div></div>
+      <div class="card-row" id="pf-vehiculo-row" style="display:none"><div class="cr-l">🚗 Vehículo</div><div class="cr-v" id="pf-vehiculo">-</div></div>
+      <div class="card-row"><div class="cr-l">📍 Ciudad</div><div class="cr-v">Tepatitlán, Jal.</div></div>
+    </div>
+    <button class="btn btn-out" onclick="doLogout()" style="margin-top:4px">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- PROVEEDOR -->
+<div class="screen pbn" id="screen-proveedor">
+  <div class="prov-hdr">
+    <div class="prov-ic">🏭</div>
+    <div class="prov-title">Únete como Proveedor</div>
+    <div class="prov-sub">Conecta tu empresa con miles de tiendas de abarrotes en Los Altos de Jalisco y toda México</div>
+  </div>
+  <div class="prov-beneficios">
+    <div class="pb"><div class="pb-ic">📦</div><div><div class="pb-title">Más clientes, menos intermediarios</div><div class="pb-sub">Llega directo a las tienditas sin depender de distribuidores tradicionales</div></div></div>
+    <div class="pb"><div class="pb-ic">📊</div><div><div class="pb-title">Dashboard de ventas en tiempo real</div><div class="pb-sub">Ve qué productos se venden más, en qué zonas y cuándo</div></div></div>
+    <div class="pb"><div class="pb-ic">🚀</div><div><div class="pb-title">Logística incluida</div><div class="pb-sub">Nuestra red de repartidores se encarga de la última milla</div></div></div>
+    <div class="pb"><div class="pb-ic">💰</div><div><div class="pb-title">Solo pagas por lo que vendes</div><div class="pb-sub">Comisión del 8% por pedido procesado, sin mensualidades</div></div></div>
+  </div>
+  <div style="padding:0 16px 24px">
+    <div style="font-size:18px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px">Solicita más información</div>
+    <div style="font-size:13px;color:var(--g600);margin-bottom:18px">Te contactamos en menos de 24 horas</div>
+    <div class="field"><label>Nombre de la empresa</label><input id="pv-empresa" type="text" placeholder="Ej. Distribuidora García S.A."></div>
+    <div class="field"><label>Tu nombre y cargo</label><input id="pv-nombre" type="text" placeholder="Ej. Carlos García - Director Comercial"></div>
+    <div class="field"><label>WhatsApp de contacto</label><input id="pv-tel" type="tel" placeholder="Ej. 378 123 4567"></div>
+    <div class="field"><label>Correo electrónico</label><input id="pv-email" type="email" placeholder="ventas@empresa.com"></div>
+    <div class="field">
+      <label>Tipo de productos que distribuyes</label>
+      <select id="pv-tipo">
+        <option value="bebidas">🥤 Bebidas y refrescos</option>
+        <option value="botanas">🍿 Botanas y dulces</option>
+        <option value="lacteos">🥛 Lácteos</option>
+        <option value="limpieza">🧴 Productos de limpieza</option>
+        <option value="granos">🌽 Granos y abarrotes secos</option>
+        <option value="carnes">🥩 Carnes y embutidos</option>
+        <option value="panaderia">🍞 Panadería y tortillería</option>
+        <option value="otro">📦 Otro</option>
+      </select>
+    </div>
+    <div class="field"><label>¿Cuántas tiendas atiendes actualmente?</label><input id="pv-tiendas" type="number" placeholder="Ej. 50"></div>
+    <div class="field">
+      <label>Cuéntanos más sobre tu empresa</label>
+      <textarea id="pv-desc" placeholder="Productos principales, zona de distribución, capacidad de entrega..."></textarea>
+    </div>
+    <button class="btn btn-red" id="btn-prov" onclick="enviarProveedor()">🚀 Enviar solicitud</button>
+    <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--g400)">
+      O contáctanos directo por WhatsApp: <span onclick="window.open('https://wa.me/523781429763','_blank')" style="color:var(--gr);font-weight:600;cursor:pointer">378 142 9763</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<div class="bnav" id="bnav">
+  <button class="bni" id="bn-tienda"     onclick="go('tienda')">      <span class="bni-ic">🏪</span><span class="bni-lb">Tienda</span></button>
+  <button class="bni" id="bn-mispedidos" onclick="go('mispedidos')">  <span class="bni-ic">📋</span><span class="bni-lb">Mis pedidos</span><span class="bni-dot" id="dot-peds"></span></button>
+  <button class="bni" id="bn-rep"        onclick="go('rep')">          <span class="bni-ic">🛵</span><span class="bni-lb">Pedidos</span><span class="bni-dot" id="dot-rep"></span></button>
+  <button class="bni" id="bn-mapa"       onclick="go('mapa')">         <span class="bni-ic">🗺</span><span class="bni-lb">Mapa</span></button>
+  <button class="bni" id="bn-perfil"     onclick="go('perfil')">       <span class="bni-ic">👤</span><span class="bni-lb">Perfil</span></button>
+</div>
+
+<script>function detectarVehiculo(val){
+  if(!val||val.length<3)return;
+  var v=val.toLowerCase();
+  var tipo=null;
+  var motos=['honda','kawasaki','yamaha','suzuki','italika','carabela','vento','bajaj','tvs','pulsar','scooter','motocicleta','cb125','pcx','nmax','fz','ninja','ybr'];
+  var camiones=['torton','rabon','trailer','kenworth','freightliner','international','npr','nqr','volteo'];
+  var camionetas=['pickup','ranger','hilux','tacoma','frontier','np300','silverado','f-150','f150','sierra','ram','colorado','l200','triton','estacas'];
+  var i;
+  for(i=0;i<camiones.length;i++){if(v.indexOf(camiones[i])>=0){tipo='camion';break;}}
+  if(!tipo)for(i=0;i<camionetas.length;i++){if(v.indexOf(camionetas[i])>=0){tipo='camioneta';break;}}
+  if(!tipo)for(i=0;i<motos.length;i++){if(v.indexOf(motos[i])>=0){tipo='moto';break;}}
+  if(!tipo)tipo='auto';
+  var det=document.getElementById('vehiculo-detectado');
+  var sel=document.getElementById('reg-vehiculo');
+  if(det&&sel){
+    var labels={moto:'&#128661; Motocicleta',auto:'&#128663; Automovil',camioneta:'&#128665; Camioneta',camion:'&#128667; Camion'};
+    det.style.display='block';
+    det.innerHTML='Detectado: <b>'+labels[tipo]+'</b>';
+    sel.value=tipo;
+  }
+}
+function calcDist(la1,lo1,la2,lo2){
+  var R=6371000,dLat=(la2-la1)*Math.PI/180,dLon=(lo2-lo1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function genCod(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+function sBtn(id,d,l){var b=document.getElementById(id);if(!b)return;b.disabled=d;b.textContent=l;}
+
+
+function listenMiPed(id){
+  if(UNSUB_MI)UNSUB_MI();
+  var ref=DB.ref("pedidos/"+id);
+  ref.on("value",function(s){
+    var p=s.val();if(!p)return;
+    show("cod-box");
+    if(p.status==="aceptado"){
+      setDot(2,"done","2");setLbl(2,"Repartidor asignado",false);
+      setDot(3,"act","3");setLbl(3,"Surtiendo tu pedido...",false);
+      txt("rcname",p.repNombre||"Repartidor");txt("rceta","~25 min");
+      g("repcard").classList.add("on");
+      var cd=document.getElementById("btn-chat-t");if(cd)cd.style.display="flex";
+      if(p.repUid&&DB){DB.ref("usuarios/"+p.repUid+"/tel").once("value",function(ts){
+        var tel=ts.val();
+        var bar=document.getElementById("call-bar-rep");if(bar)bar.style.display="flex";
+        var nm=document.getElementById("call-name-rep");if(nm)nm.textContent=p.repNombre||"Repartidor";
+        var sub=document.getElementById("call-sub-rep");if(sub)sub.textContent=tel||"";
+        var lnk=document.getElementById("call-btn-tracking");if(lnk&&tel)lnk.href="tel:"+tel;
+      });}
+    } else if(p.status==="surtiendo"){
+      setDot(3,"act","3");setLbl(3,"Preparando tu pedido...",false);txt("rceta","~18 min");
+      var cd2=document.getElementById("btn-chat-t");if(cd2)cd2.style.display="flex";
+    } else if(p.status==="camino"){
+      setDot(3,"done","3");setLbl(3,"Listo en bodega",false);
+      setDot(4,"act","4");setLbl(4,"En camino - dale tu codigo al llegar",false);txt("rceta","~10 min");
+      var cd3=document.getElementById("btn-chat-t");if(cd3)cd3.style.display="flex";
+    } else if(p.status==="entregado"){
+      setDot(4,"done","4");setLbl(4,"Llego a tu tienda",false);
+      setDot(5,"done","5");setLbl(5,"Entregado!",false);
+      txt("rceta","Llego!");hide("cod-box");
+      toast("Tu pedido fue entregado!","#16a34a");
+      setTimeout(function(){mostrarRating(p);},2000);
+    } else if(p.status==="cancelado"){
+      setDot(2,"wait","X");setLbl(2,"Pedido cancelado",false);
+    }
+  });
+  UNSUB_MI=function(){ref.off("value");};
+}
+
+function liveMyPeds(){
+  if(!USER||!DB)return;
+  DB.ref("pedidos").orderByChild("tiendaUid").equalTo(USER.uid).on("value",function(s){
+    var activos=[];
+    s.forEach(function(c){var p=c.val();if(p&&p.status!=="entregado"&&p.status!=="cancelado")activos.push(p);});
+    var dot=g("dot-peds");if(dot)dot.classList.toggle("on",activos.length>0);
+    if(activos.length>0){
+      var ped=activos[activos.length-1];
+      // Siempre reconectar - aunque ya tuviera PED_ID
+      if(PED_ID!==ped.id){
+        PED_ID=ped.id;
+        listenMiPed(PED_ID);
+      }
+      // Si cliente esta en pantalla confirm, ir ahi
+      var sc=document.getElementById("screen-confirm");
+      if(sc&&sc.style.display==="none"||!sc){
+        go("confirm");
+      }
+    }
+  });
+}
+
+function listenPedidos(){
+  if(UNSUB_REP)UNSUB_REP();
+  var ref=DB.ref("pedidos");
+  ref.on("value",function(snap){
+    if(!ONLINE||PED_DATA)return;
+    var pesoMax={"moto":50,"auto":200,"camioneta":500,"camion":9999}[USER&&USER.vehiculo?USER.vehiculo:"moto"]||50;
+    var todos=[];
+    snap.forEach(function(c){var p=c.val();if(p&&p.status==="buscando"&&(p.pesoKg||0)<=pesoMax)todos.push(p);});
+    todos.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+    if(todos.length>0)mostrarIncoming(todos[0]);
+  });
+  UNSUB_REP=function(){ref.off("value");};
+}
+
+var PROPINA=0;
+function selPropina(monto,el){
+  PROPINA=monto;
+  document.querySelectorAll(".prop-opt").forEach(function(e){e.style.borderColor="#e7e5e4";e.style.background="#fff";});
+  el.style.borderColor="#E8220A";el.style.background="#FFF1EF";
+  toast(monto>0?"Propina $"+monto+" agregada":"Sin propina","#16a34a");
+}
+
+
+// === PRODUCTOS con peso ===
+var PRODS=[
+  {id:0, n:"Tostada Deshidratada Familiar 38pz", d:"Bolsa 38 piezas",   p:32,   e:"&#129363;", c:"tostadas",  kg:0.35},
+  {id:1, n:"Doraditas Cevichera 40pz",           d:"Bolsa 40 piezas",   p:29,   e:"&#127855;", c:"tostadas",  kg:0.4},
+  {id:2, n:"Tostada Pozolera Tradicional",        d:"Bolsa individual",  p:25,   e:"&#129363;", c:"tostadas",  kg:0.3},
+  {id:3, n:"Botanera Mega 80pz",                  d:"Bolsa 80 piezas",   p:62,   e:"&#127857;", c:"tostadas",  kg:0.7},
+  {id:4, n:"Salsa Tomate Chile de Arbol",         d:"Frasco individual", p:13,   e:"&#127798;", c:"salsas",    kg:0.35},
+  {id:5, n:"Salsa Jitomate Chile de Arbol",       d:"Frasco individual", p:13,   e:"&#127798;", c:"salsas",    kg:0.35},
+  {id:6, n:"Salsa Tomate Chile Habanero",         d:"Frasco individual", p:13,   e:"&#127798;", c:"salsas",    kg:0.35},
+  {id:7, n:"Boing Mango 354ml",                   d:"No retornable",     p:16.3, e:"&#129352;", c:"bebidas",   kg:0.4},
+  {id:8, n:"Boing Fresa 354ml",                   d:"No retornable",     p:16.3, e:"&#129352;", c:"bebidas",   kg:0.4},
+  {id:9, n:"Boing Uva 354ml",                     d:"No retornable",     p:16.3, e:"&#129352;", c:"bebidas",   kg:0.4},
+  {id:10,n:"Boing Guayaba 354ml",                 d:"No retornable",     p:16.3, e:"&#129352;", c:"bebidas",   kg:0.4},
+  {id:11,n:"Boing Mango Tetrapack 500ml",         d:"Tetrapack",         p:15.3, e:"&#129371;", c:"bebidas",   kg:0.55},
+  {id:12,n:"Boing Uva Tetrapack 500ml",           d:"Tetrapack",         p:15.3, e:"&#129371;", c:"bebidas",   kg:0.55},
+  {id:13,n:"Boing Fresa Tetrapack 500ml",         d:"Tetrapack",         p:15.3, e:"&#129371;", c:"bebidas",   kg:0.55},
+  {id:14,n:"Boing Guayaba Tetrapack 500ml",       d:"Tetrapack",         p:15.3, e:"&#129371;", c:"bebidas",   kg:0.55},
+  {id:15,n:"Vitrolero Pastiseta",                 d:"Charola surtida",   p:80,   e:"&#127850;", c:"galletas",  kg:1.5},
+  {id:16,n:"Vitrolero Galleta Surtida",           d:"Charola surtida",   p:80,   e:"&#127850;", c:"galletas",  kg:1.5},
+  {id:17,n:"Tacos Dorados",                       d:"Bolsa individual",  p:21,   e:"&#127790;", c:"tostadas",  kg:0.25},
+  {id:18,n:"Totopos",                             d:"Bolsa individual",  p:19.5, e:"&#127857;", c:"tostadas",  kg:0.2},
+  {id:19,n:"Costal Rollo 70x90",                  d:"Pieza",             p:23,   e:"&#128144;", c:"otros",     kg:0.3},
+  {id:20,n:"Costal Rollo 90x120",                 d:"Pieza",             p:37.5, e:"&#128144;", c:"otros",     kg:0.5},
+  {id:21,n:"Cajeta 200g",                         d:"Frasco 200g",       p:22.5, e:"&#129371;", c:"dulces",    kg:0.22},
+  {id:22,n:"Gummy Kids Hubin",                    d:"Bolsa",             p:111,  e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:23,n:"Gomibin Mini Aritos",                 d:"Bolsa",             p:104,  e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:24,n:"Gomibin Huesitos",                    d:"Bolsa",             p:104,  e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:25,n:"Gomibin Cocodrilos",                  d:"Bolsa",             p:97,   e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:26,n:"Gommy Rellenitax 3D Mundial",         d:"Bolsa",             p:51,   e:"&#129439;", c:"dulces",    kg:0.5},
+  {id:27,n:"Gomibin Tiburones 900g",              d:"Bolsa 900g",        p:104,  e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:28,n:"Gomibin Aritos",                      d:"Bolsa",             p:97,   e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:29,n:"Gomibin Viboritas",                   d:"Bolsa",             p:97,   e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:30,n:"Gomibin Sandias",                     d:"Bolsa",             p:97,   e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:31,n:"Gomibin Estrellita Bicolor",          d:"Bolsa",             p:97,   e:"&#129439;", c:"dulces",    kg:0.9},
+  {id:32,n:"Mini Jelly Huevito",                  d:"Bolsa",             p:72,   e:"&#129439;", c:"dulces",    kg:0.7},
+  {id:33,n:"Jelly Kapi 15g",                      d:"Bolsa",             p:60,   e:"&#129439;", c:"dulces",    kg:0.6}
+];
+
+var STEPS_DEF=[
+  {l:'Pedido aceptado',s:'',ic:'OK'},
+  {l:'Ir a bodega y surtir',s:'Dirigete a la bodega Redsurte',btn:'OK Ya tengo el pedido',ns:'surtiendo',ic:'bodega'},
+  {l:'En camino a la tienda',s:'Conduce con cuidado moto',btn:'bodega Entregue el pedido',ns:'entregado',g:true,ic:'moto',showCod:true},
+  {l:'Entregado con exito! ',s:'',ic:''}
+];
+
+// === STATE ===
+var USER=null,CART={},CAT='todos',PAY='efectivo';
+var PED_ID=null,PED_DATA=null,ONLINE=false,R_STEP=0;
+var CD=null,MAP=null,RMAP=null,PMAP=null,MARKERS={},RUTA_LAYER=null;
+var MY_POS={lat:20.8163,lng:-102.5283},REG_POS={lat:20.8163,lng:-102.5283};
+var PED_POS={lat:20.8163,lng:-102.5283};
+var GPS_ID=null,CHAT_PED=null,UNSUB_MI=null,UNSUB_REP=null;
+var ganHoy=0,entHoy=0,ganTotal=0,entTotal=0;
+var FOTO_B64=null,PED_MARKER=null;
+
+// === HELPERS ===
+function g(id){return document.getElementById(id);}
+function show(id){var e=g(id);if(e)e.style.display='block';}
+function showF(id){var e=g(id);if(e)e.style.display='flex';}
+function hide(id){var e=g(id);if(e)e.style.display='none';}
+function txt(id,t){var e=g(id);if(e)e.textContent=t;}
+function toast(msg,bg){
+  var t=g('toast');t.textContent=msg;t.style.background=bg||'#0a0a0a';
+  t.classList.add('show');clearTimeout(t._t);
+  t._t=setTimeout(function(){t.classList.remove('show');},3500);
+}
+function setBtn(id,dis,label){var b=g(id);if(!b)return;b.disabled=dis;b.textContent=label;}
+function errMsg(code){
+  var M={
+    'auth/email-already-in-use':'Ese correo ya tiene cuenta',
+    'auth/invalid-email':'Correo no valido',
+    'auth/weak-password':'Contrasena muy corta (minimo 6)',
+    'auth/user-not-found':'No existe cuenta con ese correo',
+    'auth/wrong-password':'Contrasena incorrecta',
+    'auth/invalid-credential':'Correo o contrasena incorrectos',
+    'auth/too-many-requests':'Demasiados intentos. Espera unos minutos.',
+    'auth/network-request-failed':'Sin internet.',
+    'auth/operation-not-allowed':'Activa Email/Password en Firebase Auth.'
+  };
+  return M[code]||('Error: '+code);
+}
+function fmt(ts){if(!ts)return'';var d=new Date(ts);return d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}
+function pesoTotal(){return Object.entries(CART).reduce(function(a,e){return a+(CART[e[0]]*(PRODS[e[0]].kg||0));},0);}
+function transporteRecomendado(kg){
+  if(kg<=50)return{ic:'moto',lbl:'Moto',cls:'tb-moto'};
+  if(kg<=200)return{ic:'auto',lbl:'Automovil',cls:'tb-auto'};
+  return{ic:'camioneta',lbl:'Camioneta o camion',cls:'tb-camion'};
+}
+function generarCodigo(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+
+// === MENU ===
+function abrirMenu(){g('side-overlay').classList.add('open');g('side-menu').classList.add('open');}
+function cerrarMenu(){g('side-overlay').classList.remove('open');g('side-menu').classList.remove('open');}
+
+// === NAVEGACION ===
+function go(screen){
+  if(screen==='mispedidos'&&USER&&USER.rol==='repartidor'){screen='rep';}
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.bni').forEach(function(b){b.classList.remove('on');});
+  var sc=g('screen-'+screen);if(sc)sc.classList.add('active');
+  var bn=g('bn-'+screen);if(bn)bn.classList.add('on');
+  var noNav=['splash','login','registro','confirm','proveedor'];
+  g('bnav').classList.toggle('vis',noNav.indexOf(screen)===-1);
+  window.scrollTo(0,0);
+  if(screen==='mapa')initMap();
+  if(screen==='perfil')cargarPerfil();
+  if(screen==='mispedidos')cargarMisPedidos();
+  if(screen==='registro')setTimeout(initRegMap,200);
+}
+
+// === FOTO ===
+function previewFoto(input){
+  if(!input.files||!input.files[0])return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    FOTO_B64=e.target.result;
+    var el=g('foto-preview');
+    el.innerHTML='<img src="'+FOTO_B64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function cambiarFotoPerfil(input){
+  if(!input.files||!input.files[0])return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var b64=e.target.result;
+    var av=g('pf-av');
+    av.innerHTML='<img src="'+b64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><input type="file" id="foto-perfil-input" accept="image/*" style="display:none" onchange="cambiarFotoPerfil(this)">';
+    if(USER&&DB)DB.ref('usuarios/'+USER.uid).update({foto:b64});
+    USER.foto=b64;
+    actualizarAvatarRep();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function actualizarAvatarRep(){
+  if(!USER||USER.rol!=='repartidor')return;
+  if(USER.foto){
+    var av=g('r-av');if(av)av.innerHTML='<img src="'+USER.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  }
+}
+
+// === ENTRAR APP ===
+function entrarApp(){
+  var CLS={tienda:'mb-t',repartidor:'mb-r'};
+  var mb=g('mbadge');
+  mb.textContent=(USER.rol||'').toUpperCase();
+  mb.className='mbadge '+(CLS[USER.rol]||'mb-t');
+  mb.style.display='block';
+  var nu=g('nav-u');
+  nu.textContent=(USER.nombre||'').split(' ')[0]+' >';
+  nu.style.display='block';
+  g('side-logout').style.display='flex';
+  var esT=USER.rol==='tienda';
+  var esR=USER.rol==='repartidor';
+  function showTab(id,v){var e=g(id);if(e)e.style.display=v?'flex':'none';}
+  showTab('bn-tienda',esT);showTab('bn-mispedidos',esT);
+  showTab('bn-rep',esR);showTab('bn-mapa',true);showTab('bn-perfil',true);
+  txt('t-hdr',(USER.tiendaNombre||USER.nombre||'Mi Tienda')+' tienda');
+  txt('r-hname',USER.nombre||'Repartidor');
+  if(USER.vehiculo)txt('r-hsub',({moto:'moto Moto',auto:'auto Auto',camioneta:'camioneta Camioneta',camion:'camion Camion'}[USER.vehiculo]||'')+(USER.vehiculoModelo?' - '+USER.vehiculoModelo:''));
+  if(USER.foto)actualizarAvatarRep();
+  iniciarGPS();
+  if(esR){go('rep');}
+  else{renderProds();go('tienda');escucharMisPedidosLive();}
+}
+
+// === AUTH ===
+function toggleRolFields(){
+  var rol=g('reg-rol').value;
+  g('field-tienda').style.display=rol==='tienda'?'block':'none';
+  g('fields-rep').style.display=rol==='repartidor'?'block':'none';
+}
+// toggleRolFields called on window.load
+
+var regMapReady=false,regMarker=null;
+function initRegMap(){
+  if(regMapReady||!g('reg-map'))return;
+  regMapReady=true;
+  RMAP=L.map('reg-map').setView([MY_POS.lat,MY_POS.lng],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:' OpenStreetMap',maxZoom:19}).addTo(RMAP);
+  var icon=L.divIcon({html:'<div style="font-size:28px">&#128205;</div>',className:'',iconAnchor:[14,28]});
+  regMarker=L.marker([MY_POS.lat,MY_POS.lng],{draggable:true,icon:icon}).addTo(RMAP);
+  regMarker.on('dragend',function(e){var p=e.target.getLatLng();REG_POS={lat:p.lat,lng:p.lng};});
+  RMAP.on('click',function(e){REG_POS={lat:e.latlng.lat,lng:e.latlng.lng};regMarker.setLatLng(e.latlng);});
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      MY_POS={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      REG_POS={lat:MY_POS.lat,lng:MY_POS.lng};
+      RMAP.setView([MY_POS.lat,MY_POS.lng],15);
+      regMarker.setLatLng([MY_POS.lat,MY_POS.lng]);
+    });
+  }
+}
+
+function doRegistro(){
+  if(!AUTH){toast('(!!) Error de conexion. Recarga la pagina.');return;}
+  var nom=g('reg-nom').value.trim();
+  var em=g('reg-em').value.trim();
+  var pw=g('reg-pw').value;
+  var rol=g('reg-rol').value;
+  var tnm=g('reg-tienda')?g('reg-tienda').value.trim():'';
+  if(!nom||!em||!pw){toast('(!!) Llena todos los campos');return;}
+  if(pw.length<6){toast('(!!) La contrasena necesita minimo 6 caracteres');return;}
+  if(rol==='tienda'&&!tnm){toast('(!!) Escribe el nombre de tu tienda');return;}
+  setBtn('btn-reg',true,'Creando cuenta...');
+  AUTH.createUserWithEmailAndPassword(em,pw)
+    .then(function(cred){
+      var uid=cred.user.uid;
+      var data={nombre:nom,email:em,rol:rol,uid:uid,
+        tiendaNombre:rol==='tienda'?tnm:nom,
+        lat:REG_POS.lat,lng:REG_POS.lng,
+        vehiculo:rol==='repartidor'?(g('reg-vehiculo')?g('reg-vehiculo').value:'moto'):'',
+        vehiculoModelo:rol==='repartidor'?(g('reg-vehiculo-modelo')?g('reg-vehiculo-modelo').value.trim():''):'',
+        placa:rol==='repartidor'?(g('reg-placa')?g('reg-placa').value.trim().toUpperCase():''):'',
+        foto:FOTO_B64||'',
+        gananciaTotal:0,entregas:0};
+      return DB.ref('usuarios/'+uid).set(data).then(function(){
+        USER={uid:uid};Object.assign(USER,data);
+        setBtn('btn-reg',false,'Crear cuenta >');
+        entrarApp();
+      });
+    })
+    .catch(function(e){setBtn('btn-reg',false,'Crear cuenta >');toast('X '+errMsg(e.code));});
+}
+
+function doLogin(){
+  if(!AUTH){toast('(!!) Error de conexion. Recarga la pagina.');return;}
+  var em=g('log-em').value.trim();
+  var pw=g('log-pw').value;
+  if(!em||!pw){toast('(!!) Llena todos los campos');return;}
+  setBtn('btn-log',true,'Entrando...');
+  AUTH.signInWithEmailAndPassword(em,pw)
+    .then(function(cred){
+      return DB.ref('usuarios/'+cred.user.uid).once('value').then(function(snap){
+        var data=snap.val();
+        if(!data)throw{code:'no-data'};
+        USER={uid:cred.user.uid};Object.assign(USER,data);
+        setBtn('btn-log',false,'Entrar >');
+        entrarApp();
+      });
+    })
+    .catch(function(e){setBtn('btn-log',false,'Entrar >');toast('X '+(e.code==='no-data'?'No se encontraron tus datos':errMsg(e.code)));});
+}
+
+function doLogout(){
+  USER=null;CART={};PED_ID=null;PED_DATA=null;ONLINE=false;
+  if(CD)clearInterval(CD);
+  if(GPS_ID)navigator.geolocation.clearWatch(GPS_ID);
+  if(UNSUB_MI)UNSUB_MI();if(UNSUB_REP)UNSUB_REP();
+  if(AUTH)AUTH.signOut();
+  g('mbadge').style.display='none';g('nav-u').style.display='none';
+  g('bnav').classList.remove('vis');g('side-logout').style.display='none';
+  go('splash');toast(' Sesion cerrada');
+}
+
+// Iniciar cuando el DOM este listo
+
+function navegarBodega(){
+  var url='https://www.google.com/maps/dir/?api=1&destination='+BODEGA.lat+','+BODEGA.lng+'&travelmode=driving';
+  window.open(url,'_blank');
+}
+
+function verificarCercaBodega(){
+  if(!navigator.geolocation){avanzar();return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var dist=calcDist(pos.coords.latitude,pos.coords.longitude,BODEGA.lat,BODEGA.lng);
+    if(dist<=150){
+      toast('Estas en la bodega. Puedes surtir el pedido.','#16a34a');
+      avanzar();
+    } else {
+      toast('Aun no estas en la bodega. Distancia: '+Math.round(dist)+'m','#E8220A');
+    }
+  },function(){
+    // Si no hay GPS, dejar pasar de todos modos
+    avanzar();
+  },{enableHighAccuracy:true,timeout:8000,maximumAge:0});
+}
+
+window.addEventListener('load', function() {
+  toggleRolFields();
+  if(AUTH){
+    AUTH.onAuthStateChanged(function(u){
+      if(u&&!USER){
+        DB.ref('usuarios/'+u.uid).once('value').then(function(snap){
+          var data=snap.val();
+          if(data){USER={uid:u.uid};Object.assign(USER,data);entrarApp();}
+        }).catch(function(e){console.log(e);});
+      }
+    });
+  }
+});
+
+// === CATALOGO ===
+function renderProds(){
+  var list=CAT==='todos'?PRODS:PRODS.filter(function(p){return p.c===CAT;});
+  var q=(g('search')?g('search').value:'').toLowerCase().trim();
+  if(q)list=list.filter(function(p){return p.n.toLowerCase().indexOf(q)!==-1;});
+  g('prods').innerHTML=list.map(function(p){
+    var qty=CART[p.id]||0;
+    return'<div class="prod '+(qty>0?'inc':'')+'">'+
+      '<div class="pem">'+p.e+'</div>'+
+      '<div class="pin">'+
+        '<div class="pnm">'+p.n+'</div>'+
+        '<div class="pds">'+p.d+'</div>'+
+        '<div class="ppr">$'+p.p+' mxn</div>'+
+        '<div class="ppeso"> '+p.kg+'kg por unidad</div>'+
+      '</div>'+
+      '<div class="pqc">'+
+      (qty>0?'<button class="qb" onclick="qc('+p.id+',-1)">-</button><div class="qn">'+qty+'</div>':'')+
+      '<button class="qb add '+(qty>0?'red':'')+'" onclick="qc('+p.id+',1)">+</button>'+
+      '</div></div>';
+  }).join('');
+}
+function qc(id,d){CART[id]=Math.max(0,(CART[id]||0)+d);if(!CART[id])delete CART[id];updBar();renderProds();}
+function updBar(){
+  var cnt=Object.values(CART).reduce(function(a,b){return a+b;},0);
+  var tot=Object.entries(CART).reduce(function(a,e){return a+e[1]*PRODS[e[0]].p;},0);
+  txt('ccnt',cnt);txt('ctotv',tot.toLocaleString('es-MX'));
+  g('cfloat').classList.toggle('hidden',cnt===0);
+}
+function selCat(el,cat){document.querySelectorAll('.cat').forEach(function(c){c.classList.remove('on');});el.classList.add('on');CAT=cat;renderProds();}
+
+// === CARRITO ===
+var pedidoMapReady=false,pedidoMarker=null;
+function abrirCarrito(){
+  var items=Object.entries(CART).map(function(e){return Object.assign({},PRODS[e[0]],{qty:e[1]});});
+  var tot=items.reduce(function(a,i){return a+i.qty*i.p;},0);
+  var peso=pesoTotal();
+  var tr=transporteRecomendado(peso);
+  g('citems').innerHTML=items.map(function(i){
+    return'<div class="ci"><span style="font-size:22px">'+i.e+'</span>'+
+      '<div style="flex:1"><div class="cin">'+i.n+'</div><div class="ciq">'+i.qty+' x $'+i.p+'</div></div>'+
+      '<div class="cip">$'+(i.qty*i.p).toLocaleString('es-MX')+'</div></div>';
+  }).join('');
+  txt('csub','$'+tot.toLocaleString('es-MX'));
+  txt('ctot','$'+tot.toLocaleString('es-MX'));
+  txt('cpeso',peso.toFixed(1)+' kg');
+  var tb=g('transport-badge');
+  tb.textContent=tr.ic+' Transporte recomendado: '+tr.lbl;
+  tb.className='transport-badge '+tr.cls;
+  g('modal-cart').classList.add('open');
+  // Mapa de ubicacion
+  setTimeout(function(){
+    if(!pedidoMapReady){
+      pedidoMapReady=true;
+      PMAP=L.map('map-pedido').setView([MY_POS.lat,MY_POS.lng],15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:' OpenStreetMap',maxZoom:19}).addTo(PMAP);
+      var icon=L.divIcon({html:'<div style="font-size:28px">&#128205;</div>',className:'',iconAnchor:[14,28]});
+      PED_POS={lat:MY_POS.lat,lng:MY_POS.lng};
+      pedidoMarker=L.marker([MY_POS.lat,MY_POS.lng],{draggable:true,icon:icon}).addTo(PMAP);
+      pedidoMarker.on('dragend',function(e){var p=e.target.getLatLng();PED_POS={lat:p.lat,lng:p.lng};});
+      PMAP.on('click',function(e){PED_POS={lat:e.latlng.lat,lng:e.latlng.lng};pedidoMarker.setLatLng(e.latlng);});
+    }
+    PMAP.invalidateSize();
+    PMAP.setView([MY_POS.lat,MY_POS.lng],15);
+    if(pedidoMarker)pedidoMarker.setLatLng([MY_POS.lat,MY_POS.lng]);
+  },200);
+}
+function selPay(m,el){PAY=m;document.querySelectorAll('.pay-opt').forEach(function(e){e.classList.remove('on');});el.classList.add('on');}
+
+function confirmar(){
+  if(!AUTH||!DB){toast("Sin conexion a Firebase");return;}
+  var items=Object.entries(CART).map(function(e){return Object.assign({},PRODS[e[0]],{qty:e[1]});});
+  if(!items.length)return;
+  var tot=items.reduce(function(a,i){return a+i.qty*i.p;},0);
+  var peso=pesoTotal();
+  var tr=transporteRecomendado(peso);
+  var cod=genCod();
+  var dist=calcDist(BODEGA.lat,BODEGA.lng,PED_POS.lat,PED_POS.lng);
+  var distKm=dist/1000;
+  var tarifaKm=peso<=50?7:peso<=200?12:peso<=500?22:45;
+  var ahora=new Date();var hora=ahora.getHours();var dia=ahora.getDay();
+  var multipli=((hora>=12&&hora<14)||(hora>=18&&hora<20))?1.20:(dia===0||dia===6)?1.10:1.0;
+  var costoEnvio=Math.round(distKm*tarifaKm*multipli);
+  var envioRep=Math.round(costoEnvio*0.80);
+  var envioRed=Math.round(costoEnvio*0.20);
+  var earn=Math.round(tot*0.05)+25+envioRep;
+  var propina=typeof PROPINA!=="undefined"?PROPINA:0;
+  sBtn("btn-conf",true,"Enviando...");
+  var r=DB.ref("pedidos").push();PED_ID=r.key;
+  var data={
+    id:PED_ID,tiendaUid:USER?USER.uid:"x",
+    tiendaNombre:USER?(USER.tiendaNombre||USER.nombre||"Tienda"):"Tienda",
+    tiendaDirec:"Tepatitlan de Morelos, Jal.",
+    lat:PED_POS.lat,lng:PED_POS.lng,
+    items:items.map(function(i){return{id:i.id,n:i.n,e:i.e,p:i.p,qty:i.qty,kg:i.kg};}),
+    total:tot,pesoKg:peso,gananciaRep:earn,transporteRec:tr.ic,
+    costoEnvio:costoEnvio,totalConEnvio:tot+costoEnvio+propina,
+    envioRep:envioRep,envioRed:envioRed,distKm:parseFloat(distKm.toFixed(2)),
+    metodoPago:PAY,propina:propina,codigo:cod,status:"buscando",
+    ts:firebase.database.ServerValue.TIMESTAMP
+  };
+  r.set(data).then(function(){
+    CART={};updBar();renderProds();
+    g("modal-cart").classList.remove("open");
+    sBtn("btn-conf",false,"Confirmar pedido");
+    txt("ped-id-lbl","Pedido #"+PED_ID.slice(-6).toUpperCase());
+    go("confirm");resetTrack();
+    txt("cod-val",cod);show("cod-box");show("btn-cancel");
+    var _cd=30;
+    var _btn=document.getElementById("btn-cancel");
+    if(_btn)_btn.textContent="Cancelar pedido ("+_cd+"s)";
+    var _iv=setInterval(function(){
+      _cd--;if(_btn)_btn.textContent="Cancelar pedido ("+_cd+"s)";
+      if(_cd<=0){clearInterval(_iv);hide("btn-cancel");}
+    },1000);
+    CANCEL_T=setTimeout(function(){clearInterval(_iv);hide("btn-cancel");},30000);
+    listenMiPed(PED_ID);
+    toast("Pedido enviado! Buscando repartidor...");
+  }).catch(function(e){sBtn("btn-conf",false,"Confirmar pedido");toast("Error: "+e.message);});
+}
+
+function cancelarPedido(){
+  if(!PED_ID||!DB){toast('(!!) No hay pedido activo');return;}
+  // Solo cancelar si esta en status 'buscando'
+  DB.ref('pedidos/'+PED_ID+'/status').once('value',function(snap){
+    var s=snap.val();
+    if(s==='buscando'){
+      DB.ref('pedidos/'+PED_ID).update({status:'cancelado'})
+        .then(function(){
+          clearTimeout(CANCEL_TIMER);
+          hide('btn-cancelar-ped');
+          toast('OK Pedido cancelado','#d97706');
+          // Limpiar tracking
+          setTimeout(function(){go('tienda');},1500);
+        });
+    } else {
+      toast('(!!) El pedido ya fue aceptado, no se puede cancelar');
+      hide('btn-cancelar-ped');
+    }
+  });
+}
+
+// === TRACKING ===
+function resetTrack(){
+  setDot(1,'done','OK');setLbl(1,'Pedido enviado',false);
+  setDot(2,'act','...');setLbl(2,'Buscando repartidor...',false);
+  setDot(3,'wait','3');setLbl(3,'Repartidor en bodega',true);
+  setDot(4,'wait','4');setLbl(4,'En camino a tu tienda',true);
+  setDot(5,'wait','5');setLbl(5,'Entregado ',true);
+  g('repcard').classList.remove('on');hide('btn-chat-t');hide('codigo-box');
+}
+function setDot(n,cls,ic){var e=g('td'+n);if(!e)return;e.className='tdot '+cls;e.textContent=ic;}
+function setLbl(n,t,w){var e=g('tl'+n);if(!e)return;e.textContent=t;e.className='tlbl'+(w?' w':'');}
+
+function escucharMiPedido(id){
+  if(UNSUB_MI)UNSUB_MI();
+  var ref=DB.ref('pedidos/'+id);
+  ref.on('value',function(snap){
+    var p=snap.val();if(!p)return;
+    var s=p.status;
+    show('codigo-box');
+    if(s==='aceptado'){
+      setDot(2,'done','OK');setLbl(2,'Repartidor asignado OK',false);
+      setDot(3,'act','bodega');setLbl(3,'Repartidor en bodega surtiendo...',false);
+      txt('rcname',p.repNombre||'Repartidor');txt('rceta','~25 min');
+      txt('rcsub','auto '+( p.vehiculo||'')+(p.placa?' - '+p.placa:''));
+      if(p.repFoto){var av=g('rcav');av.innerHTML='<img src="'+p.repFoto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+      g('repcard').classList.add('on');show('btn-chat-t');
+    } else if(s==='surtiendo'){
+      setDot(3,'act','bodega');setLbl(3,'Preparando tu pedido en bodega...',false);txt('rceta','~18 min');
+    } else if(s==='camino'){
+      setDot(3,'done','OK');setLbl(3,'Pedido listo',false);
+      setDot(4,'act','moto');setLbl(4,'En camino a tu tienda - muestrale el codigo',false);
+      txt('rceta','~10 min');
+      // Dibujar ruta en mapa
+      if(p.repLat&&p.lat)dibujarRuta(p.repLat,p.repLng,p.lat,p.lng);
+    } else if(s==='entregado'){
+      setDot(4,'done','OK');setLbl(4,'Llego a tu tienda',false);
+      setDot(5,'done','OK');setLbl(5,'Entregado! ',false);
+      txt('rceta','OK Llego!');hide('codigo-box');
+      toast(' Tu pedido fue entregado!','#16a34a');
+    }
+  });
+  UNSUB_MI=function(){ref.off('value');};
+}
+
+function escucharMisPedidosLive(){
+  if(!USER||!DB)return;
+  DB.ref('pedidos').orderByChild('tiendaUid').equalTo(USER.uid).on('value',function(snap){
+    var activos=0;snap.forEach(function(c){if(c.val().status!=='entregado')activos++;});
+    g('dot-peds').classList.toggle('on',activos>0);
+  });
+}
+
+function cargarMisPedidos(){
+  if(!USER||!DB)return;
+  DB.ref('pedidos').orderByChild('tiendaUid').equalTo(USER.uid).once('value',function(snap){
+    var peds=[];snap.forEach(function(c){peds.push(c.val());});
+    peds.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+    if(!peds.length){
+      g('lista-peds').innerHTML='<div style="text-align:center;padding:48px 24px;color:var(--g400)"><div style="font-size:48px;margin-bottom:12px">bodega</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">Sin pedidos aun</div><div style="font-size:13px">Haz tu primer pedido desde el catalogo</div></div>';
+      return;
+    }
+    var stxt={buscando:'Buscando repartidor',aceptado:'Repartidor asignado',surtiendo:'En bodega',camino:'En camino',entregado:'Entregado'};
+    var scls={buscando:'ps-b',aceptado:'ps-a',surtiendo:'ps-a',camino:'ps-c',entregado:'ps-e'};
+    g('lista-peds').innerHTML=peds.map(function(p){
+      return'<div class="ped-card '+(p.status!=='entregado'?'live':'')+'" onclick="verPedido(\''+p.id+'\')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+        '<div><div style="font-size:11px;font-family:var(--mo);color:var(--g400)">#'+(p.id||'').slice(-6).toUpperCase()+' - '+fmt(p.ts)+'</div>'+
+        '<div style="font-size:15px;font-weight:700">'+(p.tiendaNombre||'Tienda')+'</div></div>'+
+        '<div style="font-size:15px;font-weight:700;font-family:var(--mo)">$'+(p.total||0).toLocaleString('es-MX')+'</div></div>'+
+        '<div style="font-size:12px;color:var(--g600);margin:5px 0">'+(p.items||[]).map(function(i){return i.n;}).slice(0,3).join(', ')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+        '<span class="ps '+(scls[p.status]||'ps-b')+'">'+(stxt[p.status]||p.status)+'</span>'+
+        '<span style="font-size:11px;color:var(--g400)">'+(p.metodoPago||'efectivo')+'</span>'+
+        '</div></div>';
+    }).join('');
+  });
+}
+
+function verPedido(id){
+  PED_ID=id;txt('ped-id-lbl','Pedido #'+id.slice(-6).toUpperCase());
+  go('confirm');resetTrack();escucharMiPedido(id);
+}
+
+// === REPARTIDOR ===
+function toggleOnline(){
+  ONLINE=!ONLINE;
+  var btn=g('olbtn');btn.textContent=ONLINE?'* EN LINEA':'INACTIVO';
+  btn.className='olbtn '+(ONLINE?'on':'off');
+  if(ONLINE){
+    setIdle('moto','Esperando pedidos...','Estas activo. Los pedidos de tiendas en Tepatitlan llegaran aqui.');
+    escucharPedidos();iniciarGPS();
+  } else {
+    if(CD)clearInterval(CD);
+    if(UNSUB_REP){UNSUB_REP();UNSUB_REP=null;}
+    hide('rep-in');hide('rep-act');show('rep-idle');
+    setIdle('zzz','Inactivo','Activa tu disponibilidad para recibir pedidos.');
+    PED_DATA=null;g('dot-rep').classList.remove('on');
+    if(USER&&DB)DB.ref('ubicaciones/'+USER.uid).remove();
+  }
+}
+
+function escucharPedidos(){
+  if(UNSUB_REP)UNSUB_REP();if(!DB)return;
+  // Escuchar TODOS los pedidos y filtrar en cliente - evita el bug del indice de Firebase
+  var ref=DB.ref('pedidos');
+  ref.on('value',function(snap){
+    if(!ONLINE||PED_DATA)return;
+    var todos=[];
+    snap.forEach(function(c){
+      var p=c.val();
+      if(p&&p.status==='buscando'&&p.status!=='cancelado')todos.push(p);
+    });
+    // Ordenar por timestamp (mas reciente primero)
+    todos.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+    if(todos.length>0)mostrarIncoming(todos[0]);
+  });
+  UNSUB_REP=function(){ref.off('value');};
+}
+
+function mostrarIncoming(p){
+  PED_DATA=p;
+  txt('in-store',p.tiendaNombre||'Tienda');
+  txt('in-addr',' '+(p.tiendaDirec||'Tepatitlan'));
+  txt('in-earn','$'+(p.gananciaRep||0));
+  var tr=transporteRecomendado(p.pesoKg||0);
+  txt('in-transporte',tr.ic+' '+tr.lbl+' - ~20 min');
+  g('in-items').innerHTML=(p.items||[]).map(function(i){return'<div class="initem">- '+i.n+' x '+i.qty+' ('+i.kg+'kg)</div>';}).join('');
+  hide('rep-idle');show('rep-in');hide('rep-act');
+  g('dot-rep').classList.add('on');
+  var cd=30;txt('r-timer',cd);
+  if(CD)clearInterval(CD);
+  CD=setInterval(function(){cd--;var el=g('r-timer');if(el)el.textContent=cd;if(cd<=0){clearInterval(CD);expirado();}},1000);
+}
+
+function aceptar(){
+  clearInterval(CD);g('dot-rep').classList.remove('on');
+  if(!PED_DATA||!DB)return;
+  DB.ref('pedidos/'+PED_DATA.id).update({
+    status:'aceptado',repUid:USER?USER.uid:'x',
+    repNombre:USER?USER.nombre:'Repartidor',
+    repFoto:USER&&USER.foto?USER.foto:'',
+    vehiculo:USER&&USER.vehiculo?USER.vehiculo:'',
+    placa:USER&&USER.placa?USER.placa:''
+  }).then(function(){
+    hide('rep-in');hide('rep-idle');show('rep-act');
+    R_STEP=1;renderSteps();
+    txt('act-store',PED_DATA.tiendaNombre||'Tienda');
+    txt('act-addr',PED_DATA.tiendaDirec||'');
+    txt('act-earn','$'+(PED_DATA.gananciaRep||0));
+    // Mostrar bodega en mapa
+    if(MAP)addMk('bodega-active',BODEGA.lat,BODEGA.lng,'bodega',BODEGA.nombre);
+    toast('OK Pedido aceptado! Ve a la bodega Redsurte.','#16a34a');
+  }).catch(function(e){toast('X '+e.message);});
+}
+
+function rechazar(){
+  clearInterval(CD);g('dot-rep').classList.remove('on');
+  PED_DATA=null;hide('rep-in');show('rep-idle');
+  setIdle(':(','Pedido rechazado','Esperando el siguiente pedido...');
+}
+function expirado(){
+  g('dot-rep').classList.remove('on');PED_DATA=null;
+  hide('rep-in');show('rep-idle');
+  setIdle('(!)','Tiempo agotado','No aceptaste a tiempo. Buscando siguiente pedido...');
+}
+
+function avanzar(){
+  R_STEP++;
+  var paso=STEPS_DEF[R_STEP];
+  if(!DB){renderSteps();return;}
+  // Si vamos a entregar, verificar que estemos cerca de la tienda
+  if(paso&&paso.showCod){
+    verificarCercaTienda();
+    return;
+  }
+  var updates={status:paso.ns||PED_DATA.status};
+  if(paso.ns){
+    DB.ref('pedidos/'+PED_DATA.id).update(updates)
+      .then(function(){
+        if(R_STEP>=STEPS_DEF.length-1)terminar();
+        else renderSteps();
+      })
+      .catch(function(e){toast('X '+e.message);});
+  } else {renderSteps();}
+}
+
+function verificarCercaTienda(){
+  if(!PED_DATA){renderSteps();return;}
+  if(!navigator.geolocation){renderSteps();return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var dist=calcDist(pos.coords.latitude,pos.coords.longitude,PED_DATA.lat,PED_DATA.lng);
+    if(dist<=150){
+      // Esta cerca - mostrar campo de codigo
+      DB.ref('pedidos/'+PED_DATA.id).update({status:'camino'}).then(function(){
+        renderSteps();
+      });
+    } else {
+      // Lejos todavia - bajar R_STEP y avisar
+      R_STEP--;
+      toast('Aun no estas cerca de la tienda. Distancia: '+Math.round(dist)+'m. Acercate mas.','#E8220A');
+      renderSteps();
+    }
+  },function(){
+    // Sin GPS - dejar pasar
+    DB.ref('pedidos/'+PED_DATA.id).update({status:'camino'}).then(function(){
+      renderSteps();
+    });
+  },{enableHighAccuracy:true,timeout:8000,maximumAge:0});
+}
+
+function validarCodigo(){
+  var input=(g('cod-input')?g('cod-input').value.trim().toUpperCase():'');
+  if(!input){toast('(!!) Ingresa el codigo del cliente');return;}
+  if(!PED_DATA||!DB){toast('(!!) Error, recarga la app');return;}
+  // Verificar codigo
+  DB.ref('pedidos/'+PED_DATA.id+'/codigo').once('value',function(snap){
+    var cod=snap.val();
+    if(cod&&cod===input){
+      DB.ref('pedidos/'+PED_DATA.id).update({status:'entregado'})
+        .then(function(){terminar();})
+        .catch(function(e){toast('X '+e.message);});
+    } else {
+      toast('X Codigo incorrecto. Pidele el codigo al cliente.','#E8220A');
+    }
+  });
+}
+
+function terminar(){
+  var earn=PED_DATA?PED_DATA.gananciaRep||0:0;
+  ganHoy+=earn;entHoy++;ganTotal+=earn;entTotal++;
+  txt('r-gan','$'+ganHoy);txt('r-ent',entHoy);
+  if(USER&&DB){
+    DB.ref('usuarios/'+USER.uid).update({gananciaTotal:ganTotal,entregas:entTotal});
+    var hoy=new Date().toISOString().split('T')[0];
+    DB.ref('entregas/'+USER.uid+'/'+hoy).push({pedidoId:PED_DATA.id,tienda:PED_DATA.tiendaNombre,earn:earn,ts:firebase.database.ServerValue.TIMESTAMP});
+  }
+  PED_DATA=null;hide('rep-act');show('rep-idle');
+  setIdle('OK','Entrega completada!','$'+earn+' mxn anadidos. Esperando nuevo pedido...');
+  toast(' Completado!','#16a34a');
+  if(RUTA_LAYER&&MAP){MAP.removeLayer(RUTA_LAYER);RUTA_LAYER=null;}
+}
+
+function renderSteps(){
+  g('steps').innerHTML=STEPS_DEF.map(function(s,i){
+    var done=i<R_STEP,cur=i===R_STEP,pend=i>R_STEP,last=i===STEPS_DEF.length-1;
+    var esCodigo=cur&&s.showCod;
+    return'<div class="step">'+
+      '<div class="stepleft"><div class="sdot '+(done?'done':cur?'cur':'pend')+'">'+(done?'OK':i+1)+'</div>'+
+      (!last?'<div class="sline '+(done?'done':'')+'"></div>':'')+
+      '</div><div class="stepc">'+
+      '<div class="stitle '+(done?'done':pend?'w':'')+'">'+s.l+'</div>'+
+      (cur&&s.s?'<div class="ssub">'+s.s+'</div>':'')+
+      (cur&&s.btn&&!esCodigo?
+        (s.navBodega?
+          '<button class="btn-nx" onclick="navegarBodega()" style="margin-bottom:8px">&#128205; Navegar a la bodega</button>'+
+          '<button class="btn-nx" onclick="verificarCercaBodega()">'+s.btn+'</button>'
+          :'<button class="btn-nx '+(s.g?'g':'')+'" onclick="avanzar()">'+s.btn+'</button>')
+        :'')+
+      (esCodigo?
+        '<div class="cod-confirm" style="display:block">'+
+        '<div class="cod-confirm-lbl"> Ingresa el codigo que te da el cliente</div>'+
+        '<input class="cod-confirm-input" id="cod-input" type="text" maxlength="6" placeholder="- - - - - -" oninput="this.value=this.value.toUpperCase()">'+
+        '<button class="btn-validar" onclick="validarCodigo()">Confirmar entrega OK</button>'+
+        '</div>':'')+ 
+      '</div></div>';
+  }).join('');
+  // Si paso actual = camino, publicar posicion y dibujar ruta
+  if(R_STEP===2&&PED_DATA&&MY_POS){
+    DB.ref('pedidos/'+PED_DATA.id).update({status:'camino',repLat:MY_POS.lat,repLng:MY_POS.lng});
+    if(MAP&&PED_DATA.lat)dibujarRuta(MY_POS.lat,MY_POS.lng,PED_DATA.lat,PED_DATA.lng);
+  }
+}
+
+function setIdle(ic,t,s){txt('idle-ic',ic);txt('idle-t',t);txt('idle-s',s);}
+
+// === RUTA EN MAPA ===
+function dibujarRuta(latA,lngA,latB,lngB){
+  if(!MAP)return;
+  if(RUTA_LAYER)MAP.removeLayer(RUTA_LAYER);
+  // Linea directa con estilo
+  RUTA_LAYER=L.polyline([[latA,lngA],[BODEGA.lat,BODEGA.lng],[latB,lngB]],{
+    color:'#2563EB',weight:4,opacity:.8,dashArray:'8,4'
+  }).addTo(MAP);
+  MAP.fitBounds(RUTA_LAYER.getBounds(),{padding:[30,30]});
+}
+
+// === CHAT ===
+function abrirChat(quien){
+  CHAT_PED=PED_ID||(PED_DATA&&PED_DATA.id);
+  if(!CHAT_PED){toast('(!!) No hay pedido activo');return;}
+  var esRep=quien==='rep';
+  txt('chat-nm',esRep?(PED_DATA&&PED_DATA.tiendaNombre||'Tienda'):(PED_DATA&&PED_DATA.repNombre||'Repartidor'));
+  g('chat-av').textContent=esRep?'tienda':'moto';
+  if(DB){
+    DB.ref('chats/'+CHAT_PED).on('value',function(snap){
+      var msgs=[];snap.forEach(function(c){msgs.push(c.val());});
+      var miUid=USER?USER.uid:'';
+      g('chat-msgs').innerHTML=msgs.map(function(m){
+        var mio=m.uid===miUid;
+        return'<div class="msg '+(mio?'out':'in')+'">'+m.text+'<div class="msg-time">'+fmt(m.ts)+'</div></div>';
+      }).join('');
+      var cm=g('chat-msgs');if(cm)cm.scrollTop=cm.scrollHeight;
+    });
+  }
+  g('modal-chat').classList.add('open');
+}
+function reportarNoEntregado(){
+  if(!PED_DATA){toast('(!!) No hay pedido activo');return;}
+  if(!confirm('Confirmas que no pudiste entregar el pedido?'))return;
+  var ped=PED_DATA;
+  // Actualizar status en Firebase
+  DB.ref('pedidos/'+ped.id).update({status:'no_entregado',reporteTs:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){
+      // Mandar WhatsApp automatico a Redsurte con el reporte
+      var tienda=ped.tiendaNombre||'Tienda';
+      var repNom=USER?USER.nombre:'Repartidor';
+      var total='$'+(ped.total||0).toLocaleString('es-MX');
+      var msg='REPORTE NO ENTREGADO - Redsurte | Pedido: #'+ped.id.slice(-6).toUpperCase()+' | Tienda: '+tienda+' | Repartidor: '+repNom+' | Total: '+total;
+      window.open('https://wa.me/523781429763?text='+encodeURIComponent(msg),'_blank');
+      // Regresar a idle
+      PED_DATA=null;hide('rep-act');show('rep-idle');
+      setIdle('(!!)','Problema reportado','El equipo Redsurte fue notificado por WhatsApp. Esperando instrucciones...');
+      toast(' Reporte enviado a Redsurte por WhatsApp','#d97706');
+    })
+    .catch(function(e){toast('X Error al reportar: '+e.message);});
+}
+
+function enviarMsg(){
+  var inp=g('chat-inp');var t=(inp?inp.value:'').trim();
+  if(!t||!CHAT_PED||!DB)return;inp.value='';
+  DB.ref('chats/'+CHAT_PED).push({uid:USER?USER.uid:'x',nombre:USER?USER.nombre:'Usuario',text:t,ts:firebase.database.ServerValue.TIMESTAMP});
+}
+
+// === MAPA ===
+function initMap(){
+  if(MAP){setTimeout(function(){MAP.invalidateSize();},100);return;}
+  MAP=L.map('map').setView([MY_POS.lat,MY_POS.lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:' <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:19}).addTo(MAP);
+  addMk('yo',MY_POS.lat,MY_POS.lng,'&#128205;','Tu ubicacion');
+  // Bodega real
+  addMk('bodega',BODEGA.lat,BODEGA.lng,'&#127981;',BODEGA.nombre);
+  if(DB){
+    DB.ref('ubicaciones').on('value',function(snap){
+      var locs=snap.val()||{};
+      Object.entries(locs).forEach(function(e){
+        var ic=({moto:'moto',auto:'auto',camioneta:'camioneta',camion:'camion'}[e[1].vehiculo]||'moto');
+        addMk('rep_'+e[0],e[1].lat,e[1].lng,ic,(e[1].nombre||'Repartidor')+' - activo');
+      });
+    });
+    DB.ref('usuarios').orderByChild('rol').equalTo('tienda').once('value',function(snap){
+      snap.forEach(function(c){
+        var u=c.val();if(u.lat&&u.lng)addMk('t_'+u.uid,u.lat,u.lng,'tienda',u.tiendaNombre||u.nombre||'Tienda');
+      });
+    });
+  }
+  setTimeout(function(){MAP.invalidateSize();},200);
+}
+function addMk(id,lat,lng,em,lbl){
+  if(!MAP)return;if(MARKERS[id])MAP.removeLayer(MARKERS[id]);
+  var icon=L.divIcon({html:'<div style="font-size:26px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))">'+em+'</div>',className:'',iconAnchor:[13,26]});
+  MARKERS[id]=L.marker([lat,lng],{icon:icon}).addTo(MAP).bindPopup('<b>'+lbl+'</b>');
+}
+
+// === GPS ===
+function iniciarGPS(){
+  if(!navigator.geolocation)return;
+  if(GPS_ID)navigator.geolocation.clearWatch(GPS_ID);
+  GPS_ID=navigator.geolocation.watchPosition(function(pos){
+    MY_POS={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    if(MAP)addMk('yo',MY_POS.lat,MY_POS.lng,'&#128205;','Tu ubicacion');
+    if(USER&&USER.rol==='repartidor'&&ONLINE&&DB){
+      DB.ref('ubicaciones/'+USER.uid).set({lat:MY_POS.lat,lng:MY_POS.lng,nombre:USER.nombre,vehiculo:USER.vehiculo||'moto',ts:firebase.database.ServerValue.TIMESTAMP});
+    }
+    // Si esta en camino, actualizar ruta
+    if(R_STEP===2&&PED_DATA&&PED_DATA.lat){
+      DB.ref('pedidos/'+PED_DATA.id).update({repLat:MY_POS.lat,repLng:MY_POS.lng});
+      if(MAP)dibujarRuta(MY_POS.lat,MY_POS.lng,PED_DATA.lat,PED_DATA.lng);
+    }
+  },function(){},{enableHighAccuracy:true,maximumAge:5000});
+}
+
+// === PERFIL ===
+function cargarPerfil(){
+  if(!USER)return;
+  var EM={tienda:'tienda',repartidor:'moto'};
+  var RL={tienda:'Dueno de tienda',repartidor:'Repartidor'};
+  var av=g('pf-av');
+  if(USER.foto)av.innerHTML='<img src="'+USER.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><input type="file" id="foto-perfil-input" accept="image/*" style="display:none" onchange="cambiarFotoPerfil(this)">';
+  else av.innerHTML=(EM[USER.rol]||'')+'<input type="file" id="foto-perfil-input" accept="image/*" style="display:none" onchange="cambiarFotoPerfil(this)">';
+  txt('pf-name',USER.nombre||'-');txt('pf-rol',RL[USER.rol]||'-');
+  txt('pf-nom',USER.nombre||'-');txt('pf-em',USER.email||'-');txt('pf-rv',RL[USER.rol]||'-');
+  if(USER.rol==='repartidor'&&USER.vehiculo){
+    var vmod=({moto:'moto Motocicleta',auto:'auto Automovil',camioneta:'camioneta Camioneta',camion:'camion Camion'}[USER.vehiculo]||USER.vehiculo);
+    txt('pf-vehiculo',vmod+(USER.vehiculoModelo?' - '+USER.vehiculoModelo:'')+(USER.placa?' - '+USER.placa:''));
+    g('pf-vehiculo-row').style.display='flex';
+  }
+  // KPIs
+  if(USER.rol==='repartidor'){
+    txt('kpi1','$'+(ganTotal||0).toLocaleString('es-MX'));txt('kpi1l','Ganancia total');
+    txt('kpi2',entTotal||0);txt('kpi2l','Entregas');
+  } else if(DB){
+    DB.ref('pedidos').orderByChild('tiendaUid').equalTo(USER.uid).once('value',function(snap){
+      var peds=[];snap.forEach(function(c){peds.push(c.val());});
+      var tot=peds.reduce(function(a,p){return a+(p.total||0);},0);
+      txt('kpi1','$'+tot.toLocaleString('es-MX'));txt('kpi1l','Total comprado');
+      txt('kpi2',peds.length);txt('kpi2l','Pedidos');
+    });
+  }
+  // Semana
+  var dias=['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+  var sem=[0,0,0,0,0,0,0];var hoyD=new Date().getDay();
+  if(DB&&USER.rol==='repartidor'){
+    DB.ref('entregas/'+USER.uid).once('value',function(snap){
+      snap.forEach(function(daySnap){
+        var fecha=new Date(daySnap.key);var dif=Math.floor((new Date()-fecha)/(1000*60*60*24));
+        if(dif<7){daySnap.forEach(function(e){sem[fecha.getDay()]+=(e.val().earn||0);});}
+      });
+      renderWeek(sem,dias,hoyD);
+    });
+  } else {renderWeek(sem,dias,hoyD);}
+}
+function renderWeek(sem,dias,hoy){
+  var max=Math.max.apply(null,sem.concat([1]));
+  g('week-grid').innerHTML=dias.map(function(d,i){
+    var v=sem[i],pct=Math.round((v/max)*100),esH=i===hoy;
+    return'<div><div class="wday-lbl" style="'+(esH?'color:var(--red);font-weight:700':'')+'">'
+      +d+'</div><div class="wday-bar"><div class="wday-fill" style="height:'+pct+'%;background:'
+      +(esH?'var(--red)':'var(--bk)')+'"></div></div>'
+      +'<div class="wday-val">'+(v>0?'$'+v:'-')+'</div></div>';
+  }).join('');
+}
+
+// === PROVEEDOR ===
+function enviarProveedor(){
+  var empresa=g('pv-empresa').value.trim();
+  var nombre=g('pv-nombre').value.trim();
+  var tel=g('pv-tel').value.trim();
+  var email=g('pv-email').value.trim();
+  if(!empresa||!nombre||!tel){toast('(!!) Llena los campos obligatorios');return;}
+  setBtn('btn-prov',true,'Enviando...');
+  if(DB){
+    DB.ref('proveedores').push({
+      empresa,nombre,tel,email,
+      tipo:g('pv-tipo').value,
+      tiendas:g('pv-tiendas').value,
+      desc:g('pv-desc').value,
+      ts:firebase.database.ServerValue.TIMESTAMP
+    }).then(function(){
+      setBtn('btn-prov',false,' Enviar solicitud');
+      toast('OK Solicitud enviada! Te contactamos pronto.','#16a34a');
+      g('pv-empresa').value='';g('pv-nombre').value='';g('pv-tel').value='';
+      g('pv-email').value='';g('pv-desc').value='';
+    }).catch(function(){setBtn('btn-prov',false,' Enviar solicitud');toast('X Error, intenta de nuevo');});
+  } else {
+    // Sin Firebase - abrir WhatsApp
+    var msg='Hola Redsurte, soy '+nombre+' de '+empresa+'. Tel: '+tel+'. Quiero registrarme como proveedor.';
+    window.open('https://wa.me/523781429763?text='+encodeURIComponent(msg),'_blank');
+    setBtn('btn-prov',false,' Enviar solicitud');
+  }
+}
+</script>
+</body>
+</html>
